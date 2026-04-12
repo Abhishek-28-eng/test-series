@@ -1,0 +1,24 @@
+# Git ignore rules for Test-Series project
+
+# ── Environment files ───────────────────────────────────────
+backend/.env
+backend/.env.local
+**/node_modules/
+
+# ── Build outputs ────────────────────────────────────────────
+frontend/dist/
+
+# ── Uploads (user content) ───────────────────────────────────
+backend/uploads/
+
+# ── OS files ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── IDE ──────────────────────────────────────────────────────
+.vscode/
+.idea/

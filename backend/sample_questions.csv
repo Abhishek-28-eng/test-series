@@ -1,0 +1,21 @@
+subject,chapter,topic,questionText,optionA,optionB,optionC,optionD,correctOption,correctNumericAnswer,questionType,marks,negativeMarks,difficulty
+Physics,Mechanics,Newton's Laws,A 5 kg object is pushed with a force of 20 N. What is the acceleration?,2 m/s²,4 m/s²,5 m/s²,10 m/s²,B,,MCQ,1,0,easy
+Physics,Mechanics,Work & Energy,A ball is dropped from 10 m height. What is its velocity just before hitting the ground? (g=10),10 m/s,14.14 m/s,12 m/s,20 m/s,B,,MCQ,1,0,medium
+Physics,Optics,Reflection,The angle of incidence equals the angle of reflection. This is which law?,Snell's Law,Faraday's Law,Law of Reflection,Coulomb's Law,C,,MCQ,1,0,easy
+Physics,Electricity,Ohm's Law,A circuit has resistance 10 Ω and voltage 50 V. What is the current?,2 A,5 A,10 A,0.5 A,B,,MCQ,1,0,easy
+Physics,Waves,Simple Harmonic,What is the time period of a simple pendulum of length 1 m? (g=10),1.98 s,2.00 s,1.00 s,3.14 s,A,,MCQ,1,0,medium
+Chemistry,Periodic Table,Groups,Which element has the highest electronegativity?,Oxygen,Chlorine,Fluorine,Nitrogen,C,,MCQ,1,0,easy
+Chemistry,Bonding,Ionic,Which compound is ionic?,HCl,CO2,NaCl,CH4,C,,MCQ,1,0,easy
+Chemistry,Thermodynamics,Enthalpy,The enthalpy change for a reaction that releases heat is called,Endothermic,Exothermic,Isothermal,Adiabatic,B,,MCQ,1,0,easy
+Chemistry,Organic,Hydrocarbons,What is the IUPAC name of CH3-CH2-CH3?,Ethane,Propane,Butane,Methane,B,,MCQ,1,0,easy
+Chemistry,Equilibrium,Le Chatelier,Increasing pressure on a gaseous system will shift equilibrium towards,Products always,Reactants always,Side with fewer moles of gas,Side with more moles of gas,C,,MCQ,1,0,medium
+Mathematics,Algebra,Quadratic,What are the roots of x² - 5x + 6 = 0?,2 and 3,1 and 6,3 and 4,-2 and -3,A,,MCQ,2,0,easy
+Mathematics,Calculus,Differentiation,What is the derivative of sin(x)?,cos(x),-cos(x),tan(x),-sin(x),A,,MCQ,2,0,easy
+Mathematics,Calculus,Integration,What is the integral of x²?,x³/3 + C,2x + C,x²/2 + C,3x² + C,A,,MCQ,2,0,easy
+Mathematics,Trigonometry,Basic,What is the value of sin(30°)?,0.5,√3/2,1/√2,√3,A,,MCQ,2,0,easy
+Mathematics,Coordinate,Lines,What is the slope of the line y = 3x + 5?,5,3,1,0,B,,MCQ,2,0,easy
+Biology,Cell Biology,Cell Division,Which phase of mitosis involves chromosome alignment at the equatorial plate?,Prophase,Metaphase,Anaphase,Telophase,B,,MCQ,1,0,medium
+Biology,Genetics,Inheritance,What is the probability of a recessive trait appearing in F2 generation (Mendel)?,1/4,1/2,3/4,1/1,A,,MCQ,1,0,medium
+Biology,Ecology,Food Chain,Which organism is a primary producer in a food chain?,Herbivore,Carnivore,Plant,Decomposer,C,,MCQ,1,0,easy
+Biology,Human Physiology,Digestion,Where does protein digestion primarily occur?,Mouth,Stomach,Small Intestine,Large Intestine,B,,MCQ,1,0,medium
+Biology,Plant Biology,Photosynthesis,Which pigment is responsible for capturing light in photosynthesis?,Melanin,Chlorophyll,Carotene,Xanthophyll,B,,MCQ,1,0,easy

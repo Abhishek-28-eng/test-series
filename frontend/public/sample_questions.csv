@@ -1,0 +1,16 @@
+subject,questionText,questionType,optionA,optionB,optionC,optionD,correctOption,correctNumericAnswer,marks,negativeMarks,difficulty,chapter,topic
+Physics,A ball is thrown vertically upward with a velocity of 20 m/s. What is the maximum height reached? (g = 10 m/s²),MCQ,10 m,20 m,40 m,5 m,B,,2,0.5,medium,Kinematics,Projectile Motion
+Physics,What is the SI unit of Force?,MCQ,Joule,Newton,Watt,Pascal,B,,1,0.25,easy,Laws of Motion,Force
+Physics,A current of 2A flows through a resistor of 5Ω. What is the power dissipated?,MCQ,5 W,10 W,20 W,2 W,C,,2,0.5,medium,Current Electricity,Power
+Physics,The work done by a force of 10N over a displacement of 5m at 60° is?,MCQ,50 J,25 J,43.3 J,86.6 J,B,,2,0.5,medium,Work Energy Power,Work
+Physics,Which of the following is a scalar quantity?,MCQ,Velocity,Force,Speed,Acceleration,C,,1,0.25,easy,Motion,Scalars and Vectors
+Chemistry,What is the atomic number of Carbon?,MCQ,4,6,8,12,B,,1,0.25,easy,Periodic Table,Atomic Number
+Chemistry,Which gas is produced when zinc reacts with dilute HCl?,MCQ,Oxygen,Carbon dioxide,Hydrogen,Chlorine,C,,1,0.25,easy,Chemical Reactions,Acids and Metals
+Chemistry,The pH of pure water at 25°C is?,MCQ,5,7,9,10,B,,1,0.25,easy,Ionic Equilibrium,pH
+Chemistry,Which of the following is NOT a noble gas?,MCQ,Helium,Neon,Nitrogen,Argon,C,,1,0.25,easy,Periodic Table,Noble Gases
+Chemistry,How many moles of NaOH are in 80g? (Molar mass = 40 g/mol),MCQ,1,2,3,4,B,,2,0.5,medium,Mole Concept,Moles
+Mathematics,The value of sin²θ + cos²θ is?,MCQ,0,2,1,None of these,C,,1,0.25,easy,Trigonometry,Identities
+Mathematics,What is the derivative of x³ with respect to x?,MCQ,x²,2x²,3x²,3x,C,,2,0.5,medium,Calculus,Differentiation
+Mathematics,If log₁₀(x) = 3 then x = ?,MCQ,30,300,1000,10,C,,2,0.5,medium,Logarithms,Properties
+Mathematics,The sum of first n natural numbers is?,MCQ,n²,n(n+1)/2,n(n-1)/2,2n,B,,1,0.25,easy,Sequences,Arithmetic Progression
+Mathematics,A quadratic equation x² - 5x + 6 = 0 has roots?,MCQ,2 and 4,1 and 6,2 and 3,3 and 4,C,,2,0.5,medium,Algebra,Quadratic Equations
