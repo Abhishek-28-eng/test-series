@@ -3,17 +3,27 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Play, CheckCircle, Target, Award, ArrowRight, BarChart2, Star } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 
 export const StudentDashboard = () => {
   const [tests, setTests] = useState([]);
   const [attempts, setAttempts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  );
   const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const fetchData = async () => {
@@ -32,148 +42,131 @@ export const StudentDashboard = () => {
   };
 
   const handleStartTest = (testId) => {
-    if (!window.confirm('Are you ready to start? The timer will begin immediately.')) return;
+    if (!window.confirm('Are you sure you want to start this test now?')) return;
     navigate(`/exam/${testId}`);
   };
 
   const inProgressAttempt = attempts.find(a => a.status === 'in_progress');
   const submittedAttempts = attempts.filter(a => a.status === 'submitted' || a.status === 'auto_submitted');
   const submittedTestIds = submittedAttempts.map(a => a.testId);
-
   const availableTests = tests.filter(test => !submittedTestIds.includes(test.id));
+  const isMobile = viewportWidth <= 768;
 
-  if (loading) return <div className="loading-center"><div className="spinner"></div></div>;
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0', color: '#6b7280' }}>
+      Loading dashboard...
+    </div>
+  );
 
   return (
-    <div className="fade-in student-portal">
-
-      {/* Premium Student Hero */}
-      <div className="student-hero">
-        <div className="hero-content">
-          <div className="hero-badge">
-            <Target size={14} /> Target: {user?.examType?.replace('_', ' ')}
-          </div>
-          <h1 className="hero-title">Prepare to Ace It, {user?.name?.split(' ')[0]}!</h1>
-          <p className="hero-desc">Your customized test series tracks your performance and guides you towards your goal.</p>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '16px' : '24px' }}>
+      
+      {/* Basic Navigation / Header */}
+      <div style={{ marginBottom: 32, borderBottom: '1px solid #e5e7eb', paddingBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-end', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 600, color: '#111827', margin: '0 0 4px 0' }}>Student Dashboard</h1>
+          <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}>Logged in as {user?.name}</p>
         </div>
-        <div className="hero-graphics hidden sm:flex">
-          <div className="graphic-circle"></div>
-          <Star className="graphic-icon" size={48} />
+        <div style={{ fontSize: 13, color: '#4b5563', background: '#f3f4f6', padding: '6px 12px', borderRadius: 4, alignSelf: isMobile ? 'flex-start' : 'auto' }}>
+          Target: {user?.examType?.replace('_', ' ') || 'Exam'}
         </div>
       </div>
 
+      {/* Alert for unfinished test */}
       {inProgressAttempt && (
-        <div className="premium-resume-banner">
-          <div className="banner-info">
-            <span className="banner-pulse"></span>
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '16px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <AlertCircle size={20} color="#d97706" />
             <div>
-              <h4>Active Session: {inProgressAttempt.test?.title}</h4>
-              <p>You have an unfinished test. Don't lose your progress!</p>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#92400e' }}>Active Test Session</div>
+              <div style={{ fontSize: 13, color: '#b45309' }}>You have not submitted: {inProgressAttempt.test?.title}</div>
             </div>
           </div>
-          <button className="btn banner-btn" onClick={() => navigate(`/exam/${inProgressAttempt.testId}`)}>
-            Resume Test <ArrowRight size={16} />
+          <button 
+            onClick={() => navigate(`/exam/${inProgressAttempt.testId}`)}
+            style={{ padding: '8px 16px', background: '#d97706', color: '#fff', border: 'none', borderRadius: 4, fontSize: 13, fontWeight: 500, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}
+          >
+            Resume Test
           </button>
         </div>
       )}
 
-      {/* Main Dashboard Layout */}
-      <div className="student-grid-layout">
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start', flexDirection: isMobile ? 'column' : 'row' }}>
         
-        {/* Left Column: Upcoming/Available Tests */}
-        <div className="s-main-col">
-          <div className="flex-between mb-4">
-            <h3 className="section-heading mb-0">Upcoming Mock Tests</h3>
-            <span className="badge badge-primary premium-pill">{availableTests.length} Available</span>
-          </div>
-
+        {/* Left Column: List of tests */}
+        <div style={{ flex: '1 1 600px', width: isMobile ? '100%' : 'auto' }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', marginBottom: 16 }}>Available Tests</h2>
+          
           {availableTests.length === 0 ? (
-            <div className="premium-empty-box">
-              <CheckCircle size={40} className="text-success mb-3" />
-              <h3>All Caught Up!</h3>
-              <p>You have completed all available tests. Great work.</p>
+            <div style={{ textAlign: 'center', padding: '40px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#f9fafb' }}>
+              <CheckCircle2 size={32} color="#9ca3af" style={{ margin: '0 auto 12px' }} />
+              <div style={{ fontSize: 14, color: '#6b7280' }}>No pending tests available.</div>
             </div>
           ) : (
-            <div className="test-grid">
-              {availableTests.map(test => {
-                const isMHT = test.examConfig?.name?.includes('MHT');
-                const isJEE = test.examConfig?.name?.includes('JEE');
-                
-                return (
-                  <div key={test.id} className="test-item-card student-test-card">
-                    <div className="test-card-top">
-                      <span className={`type-badge ${isMHT ? 'badge-mht-pcm' : isJEE ? 'badge-jee' : 'badge-neet'}`}>
-                        {test.examConfig?.displayName}
-                      </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {availableTests.map(test => (
+                <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 16, padding: '20px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
+                  
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', marginBottom: 4, textTransform: 'uppercase' }}>
+                      {test.examConfig?.displayName}
                     </div>
-                    
-                    <div className="test-card-body">
-                      <h3>{test.title}</h3>
-                      <p className="line-clamp-2">{test.description || 'Evaluate your preparation with this test.'}</p>
+                    <div style={{ fontSize: 16, fontWeight: 500, color: '#111827', marginBottom: 8 }}>
+                      {test.title}
                     </div>
-                    
-                    <div className="test-card-stats student-stats">
-                      <div className="t-stat"><strong>{test.examConfig?.duration}</strong><br/>Mins</div>
-                      <div className="stat-divider"></div>
-                      <div className="t-stat"><strong>{test.examConfig?.totalMarks}</strong><br/>Marks</div>
+                    <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#6b7280', flexDirection: isMobile ? 'column' : 'row' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={14} /> {test.examConfig?.duration} mins</span>
+                      <span>Total Marks: {test.examConfig?.totalMarks}</span>
                     </div>
-
-                    <button className="btn btn-primary btn-full premium-start-btn" onClick={() => handleStartTest(test.id)}>
-                      <Play size={16} fill="currentColor" /> Start Now
-                    </button>
                   </div>
-                );
-              })}
+
+                  <button 
+                    onClick={() => handleStartTest(test.id)}
+                    style={{ padding: '8px 24px', background: '#0d1e3d', color: '#fff', border: 'none', borderRadius: 4, fontSize: 14, fontWeight: 500, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}
+                  >
+                    Start Test
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Right Column: Performance Summary */}
-        <div className="s-side-col">
-          <h3 className="section-heading">Performance Log</h3>
-          
-          <div className="premium-history-panel">
+        {/* Right Column: Performance */}
+        <div style={{ flex: '1 1 300px', maxWidth: isMobile ? '100%' : 400, width: isMobile ? '100%' : 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>Recent Results</h2>
+            {submittedAttempts.length > 0 && (
+              <a href="#" onClick={(e) => { e.preventDefault(); navigate('/progress'); }} style={{ fontSize: 13, color: '#f97316', textDecoration: 'none' }}>View All</a>
+            )}
+          </div>
+
+          <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', overflow: 'hidden' }}>
             {submittedAttempts.length === 0 ? (
-              <div className="text-center py-8 text-muted">
-                <BarChart2 size={32} className="mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Complete tests to unlock your performance insights.</p>
+              <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: '#6b7280' }}>
+                No completed tests yet.
               </div>
             ) : (
-              <div className="history-list">
-                {submittedAttempts.map((attempt) => {
-                  const accuracy = attempt.totalCorrect + attempt.totalWrong > 0 
-                    ? ((attempt.totalCorrect / (attempt.totalCorrect + attempt.totalWrong)) * 100).toFixed(0)
-                    : 0;
-                  
-                  return (
-                    <div className="history-card" key={attempt.id}>
-                      <div className="flex-between">
-                        <div className="history-info">
-                          <h4>{attempt.test?.title}</h4>
-                          <span className="history-date">{new Date(attempt.updatedAt).toLocaleDateString()}</span>
-                        </div>
-                        <div className="history-score-box">
-                          <span className={`val ${attempt.score > 0 ? 'text-success' : 'text-danger'}`}>{attempt.score}</span>
-                          <span className="lbl">/ {attempt.test?.examConfig?.totalMarks}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="history-progress mt-3">
-                        <div className="flex-between text-xs font-bold mb-1">
-                          <span>Accuracy</span>
-                          <span>{accuracy}%</span>
-                        </div>
-                        <div className="progress-bar mini-bar">
-                          <div className={`progress-fill ${accuracy > 70 ? 'success' : accuracy < 40 ? 'danger' : ''}`} style={{ width: `${accuracy}%` }}></div>
-                        </div>
-                      </div>
-                      
-                      <button className="btn btn-ghost btn-sm btn-full mt-3 history-btn" onClick={() => navigate(`/result/${attempt.id}`)}>
-                        View Detailed Report <ArrowRight size={14} />
-                      </button>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {submittedAttempts.slice(0, 5).map((attempt, index) => (
+                  <div key={attempt.id} style={{
+                    padding: '16px', 
+                    display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 10 : 12,
+                    borderBottom: index !== submittedAttempts.slice(0, 5).length - 1 ? '1px solid #e5e7eb' : 'none',
+                    cursor: 'pointer'
+                  }} onClick={() => navigate(`/result/${attempt.id}`)}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: '#111827', marginBottom: 4 }}>{attempt.test?.title}</div>
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>{new Date(attempt.updatedAt).toLocaleDateString()}</div>
                     </div>
-                  );
-                })}
+                    <div style={{ textAlign: isMobile ? 'left' : 'right', width: isMobile ? '100%' : 'auto' }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: attempt.score > 0 ? '#16a34a' : '#dc2626' }}>
+                        {attempt.score}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#9ca3af' }}>/ {attempt.test?.examConfig?.totalMarks}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

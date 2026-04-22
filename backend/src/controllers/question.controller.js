@@ -125,6 +125,7 @@ const uploadCSV = async (req, res) => {
           optionD: row.optionD?.trim() || null,
           correctOption: qType === 'MCQ' ? (row.correctOption || row.correct_option).trim().toUpperCase() : null,
           correctNumericAnswer: qType === 'NUMERICAL' ? parseFloat(row.correctNumericAnswer) : null,
+          explanation: (row.explanation || row.solution || row.solutionText)?.trim() || null,
           marks,
           negativeMarks: negMarks,
           difficulty: diff,

@@ -4,43 +4,44 @@ import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import {
   Users, Search, Mail, Phone, Plus, CheckCircle, MessageCircle,
-  Copy, Trash2, KeyRound, TrendingUp, X, BarChart2, ChevronDown, ChevronUp, Eye
+  Copy, Trash2, KeyRound, TrendingUp, BarChart2, Eye
 } from 'lucide-react';
-
-const EXAM_CONFIGS_LABELS = {
-  'MHT-CET_PCM': 'MHT CET (PCM)',
-  'MHT-CET_PCB': 'MHT CET (PCB)',
-  'JEE':         'JEE Main',
-  'NEET':        'NEET UG',
-};
 
 export const StudentManager = () => {
   const navigate = useNavigate();
-  const [students, setStudents]         = useState([]);
-  const [configs, setConfigs]           = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [searchQuery, setSearchQuery]   = useState('');
-  
-  // Custom Filters
-  const [filterClass, setFilterClass]   = useState('');
-  const [filterExam, setFilterExam]     = useState('');
+  const [students, setStudents] = useState([]);
+  const [configs, setConfigs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  );
 
-  // Modals
-  const [showAddModal, setShowAddModal]           = useState(false);
+  const [filterClass, setFilterClass] = useState('');
+  const [filterExam, setFilterExam] = useState('');
+
+  const [showAddModal, setShowAddModal] = useState(false);
   const [newStudentDetails, setNewStudentDetails] = useState(null);
-  const [resetModal, setResetModal]               = useState(null);  // student object
-  const [growthModal, setGrowthModal]             = useState(null);  // { student, growth }
-  const [enrollModal, setEnrollModal]             = useState(null);  // student object
+  const [resetModal, setResetModal] = useState(null);
+  const [growthModal, setGrowthModal] = useState(null);
+  const [enrollModal, setEnrollModal] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '', email: '', mobile: '', password: '',
     enrolledExamConfigs: [], classYear: '', parentMobile: ''
   });
-  const [newPassword, setNewPassword]           = useState('');
-  const [growthLoading, setGrowthLoading]       = useState(false);
-  const [enrollSelected, setEnrollSelected]     = useState([]);
+  const [newPassword, setNewPassword] = useState('');
+  const [growthLoading, setGrowthLoading] = useState(false);
+  const [enrollSelected, setEnrollSelected] = useState([]);
 
   useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -50,11 +51,13 @@ export const StudentManager = () => {
       ]);
       if (sRes.data.success) setStudents(sRes.data.data);
       if (cRes.data.success) setConfigs(cRes.data.data);
-    } catch { toast.error('Failed to load data'); }
-    finally { setLoading(false); }
+    } catch {
+      toast.error('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ── Register ──────────────────────────────────────────────
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
@@ -65,21 +68,29 @@ export const StudentManager = () => {
         setFormData({ name: '', email: '', mobile: '', password: '', enrolledExamConfigs: [], classYear: '', parentMobile: '' });
         fetchData();
       }
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed to register'); }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to register');
+    }
   };
 
-  // ── Delete ────────────────────────────────────────────────
   const handleDelete = async (student) => {
     if (!window.confirm(`Delete ${student.name}? All their attempts will be removed.`)) return;
     try {
       const { data } = await api.delete(`/admin/students/${student.id}`);
-      if (data.success) { toast.success('Student deleted'); fetchData(); }
-    } catch { toast.error('Failed to delete'); }
+      if (data.success) {
+        toast.success('Student deleted');
+        fetchData();
+      }
+    } catch {
+      toast.error('Failed to delete');
+    }
   };
 
-  // ── Reset Password ────────────────────────────────────────
   const handleResetPassword = async () => {
-    if (!newPassword || newPassword.length < 6) { toast.error('Min 6 characters'); return; }
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Min 6 characters');
+      return;
+    }
     try {
       const { data } = await api.put(`/admin/students/${resetModal.id}/reset-password`, { newPassword });
       if (data.success) {
@@ -87,45 +98,52 @@ export const StudentManager = () => {
         setResetModal(null);
         setNewPassword('');
       }
-    } catch { toast.error('Failed to reset password'); }
+    } catch {
+      toast.error('Failed to reset password');
+    }
   };
 
-  // ── Growth ────────────────────────────────────────────────
   const openGrowth = async (student) => {
     setGrowthLoading(true);
     setGrowthModal({ student, growth: null });
     try {
       const { data } = await api.get(`/admin/students/${student.id}/growth`);
       if (data.success) setGrowthModal({ student, growth: data.data.growth });
-    } catch { toast.error('Failed to load growth'); }
-    finally { setGrowthLoading(false); }
+    } catch {
+      toast.error('Failed to load growth');
+    } finally {
+      setGrowthLoading(false);
+    }
   };
 
-  // ── Enrollment update ─────────────────────────────────────
   const handleUpdateEnrollment = async () => {
     try {
       const { data } = await api.put(`/admin/students/${enrollModal.id}/enrollments`, { examConfigIds: enrollSelected });
-      if (data.success) { toast.success('Enrollments updated'); setEnrollModal(null); fetchData(); }
-    } catch { toast.error('Failed to update enrollments'); }
+      if (data.success) {
+        toast.success('Enrollments updated');
+        setEnrollModal(null);
+        fetchData();
+      }
+    } catch {
+      toast.error('Failed to update enrollments');
+    }
   };
 
-  // ── WhatsApp ──────────────────────────────────────────────
   const generateWhatsAppLink = () => {
     if (!newStudentDetails) return '#';
-    const text = `Hello ${newStudentDetails.name},\n\nWelcome to *Latur Pattern*! 🎓\nYour admission is confirmed. Login details:\n\n🌐 *Portal:* ${window.location.origin}\n📞 *Mobile (Login ID):* ${newStudentDetails.mobile}\n🔐 *Password:* ${newStudentDetails.password}\n\nBest of luck!`;
+    const text = `Hello ${newStudentDetails.name},\n\nWelcome to Latur Pattern!\nYour admission is confirmed. Login details:\n\nPortal: ${window.location.origin}\nMobile (Login ID): ${newStudentDetails.mobile}\nPassword: ${newStudentDetails.password}\n\nBest of luck!`;
     return `https://wa.me/91${newStudentDetails.mobile}?text=${encodeURIComponent(text)}`;
   };
+
   const handleCopyText = () => {
     const text = `Login ID: ${newStudentDetails?.mobile}\nPassword: ${newStudentDetails?.password}\nPortal: ${window.location.origin}`;
     navigator.clipboard.writeText(text);
     toast.success('Copied!');
   };
 
-  // ── Export Results CSV ─────────────────────────────────────
   const handleExport = () => {
     const link = document.createElement('a');
     link.href = '/api/admin/results/export';
-    // attach auth token
     fetch('/api/admin/results/export', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
       .then(r => r.blob())
       .then(blob => {
@@ -137,29 +155,28 @@ export const StudentManager = () => {
       });
   };
 
-  // ── Toggle exam config selection ──────────────────────────
   const toggleConfig = (id, arr, setArr) => {
-    const idN = parseInt(id);
+    const idN = parseInt(id, 10);
     setArr(prev => prev.includes(idN) ? prev.filter(x => x !== idN) : [...prev, idN]);
   };
 
   const uniqueClasses = Array.from(new Set(students.map(s => s.classYear).filter(Boolean)));
+  const isMobile = viewportWidth <= 768;
 
   const filteredStudents = students.filter(s => {
     const searchLower = searchQuery.toLowerCase().trim();
-    const matchesSearch = !searchLower || 
-                          s.name.toLowerCase().includes(searchLower) ||
-                          (s.email && s.email.toLowerCase().includes(searchLower)) ||
-                          (s.mobile && s.mobile.includes(searchLower));
-    
+    const matchesSearch = !searchLower ||
+      s.name.toLowerCase().includes(searchLower) ||
+      (s.email && s.email.toLowerCase().includes(searchLower)) ||
+      (s.mobile && s.mobile.includes(searchLower));
+
     const matchesClass = filterClass ? String(s.classYear || '') === String(filterClass) : true;
-    
-    // Check if enrolled array has the examConfigId
-    const matchesExam = filterExam 
-      ? s.enrollments?.some(e => 
-          String(e.examConfigId) === String(filterExam) || 
+
+    const matchesExam = filterExam
+      ? s.enrollments?.some(e =>
+          String(e.examConfigId) === String(filterExam) ||
           String(e.examConfig?.id) === String(filterExam)
-        ) 
+        )
       : true;
 
     return matchesSearch && matchesClass && matchesExam;
@@ -169,32 +186,31 @@ export const StudentManager = () => {
 
   return (
     <div className="fade-in admin-manager-container">
-      {/* Header */}
       <div className="manager-header-block">
         <div className="manager-header-content">
           <h1 className="manager-title">Registered Students</h1>
-          <p className="manager-subtitle">Manage Latur Pattern admissions, passwords & enrollments.</p>
+          <p className="manager-subtitle">Manage admissions, passwords, and enrollments.</p>
         </div>
-        <div className="manager-header-actions">
+        <div className="manager-header-actions" style={{ width: isMobile ? '100%' : 'auto', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
           <button className="btn btn-secondary btn-sm" onClick={handleExport}>
-            ⬇ Export Results CSV
+            Export Results CSV
           </button>
-          
-          <div className="flex gap-2">
-            <select 
-              className="form-input" 
-              style={{ width: '140px', padding: '6px 10px', fontSize: '13px' }}
-              value={filterClass} 
+
+          <div className="flex gap-2" style={{ width: isMobile ? '100%' : 'auto', flexDirection: isMobile ? 'column' : 'row' }}>
+            <select
+              className="form-input"
+              style={{ width: isMobile ? '100%' : '140px', padding: '6px 10px', fontSize: '13px' }}
+              value={filterClass}
               onChange={e => setFilterClass(e.target.value)}
             >
               <option value="">All Classes</option>
               {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
 
-            <select 
-              className="form-input" 
-              style={{ width: '160px', padding: '6px 10px', fontSize: '13px' }}
-              value={filterExam} 
+            <select
+              className="form-input"
+              style={{ width: isMobile ? '100%' : '160px', padding: '6px 10px', fontSize: '13px' }}
+              value={filterExam}
               onChange={e => setFilterExam(e.target.value)}
             >
               <option value="">All Exams</option>
@@ -204,17 +220,17 @@ export const StudentManager = () => {
             </select>
           </div>
 
-          <div className="search-box">
+          <div className="search-box" style={{ width: isMobile ? '100%' : undefined }}>
             <Search size={16} className="search-icon" />
             <input type="text" placeholder="Search students..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="search-input" />
           </div>
+
           <button className="btn btn-primary premium-btn" onClick={() => { setNewStudentDetails(null); setShowAddModal(true); }}>
             <Plus size={16} /> <span>Add Student</span>
           </button>
         </div>
       </div>
 
-      {/* Table */}
       <div className="manager-content">
         {filteredStudents.length === 0 ? (
           <div className="empty-state premium-empty">
@@ -224,65 +240,116 @@ export const StudentManager = () => {
           </div>
         ) : (
           <div className="premium-table-card">
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Enrolled Exams</th>
-                    <th>Class</th>
-                    <th>Joined</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map(student => (
-                    <tr key={student.id} className="premium-row">
-                      <td>
-                        <div className="user-profile-cell">
-                          <div className="user-avatar">{student.name.charAt(0).toUpperCase()}</div>
-                          <div className="user-info">
-                            <h4 className="user-name">{student.name}</h4>
-                            <div className="user-contact">
-                              {student.email && <span className="contact-item"><Mail size={12}/> {student.email}</span>}
-                              <span className="contact-item"><Phone size={12}/> {student.mobile}</span>
+            {isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {filteredStudents.map(student => (
+                  <div key={student.id} style={{ padding: '16px', borderBottom: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div className="user-profile-cell" style={{ alignItems: 'flex-start' }}>
+                      <div className="user-avatar">{student.name.charAt(0).toUpperCase()}</div>
+                      <div className="user-info" style={{ minWidth: 0 }}>
+                        <h4 className="user-name">{student.name}</h4>
+                        <div className="user-contact">
+                          {student.email && <span className="contact-item"><Mail size={12}/> {student.email}</span>}
+                          <span className="contact-item"><Phone size={12}/> {student.mobile}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-muted font-bold" style={{ marginBottom: 6 }}>Enrolled Exams</div>
+                      <div className="flex flex-wrap gap-1">
+                        {student.enrollments?.length > 0
+                          ? student.enrollments.map(en => (
+                              <span key={en.id} className="badge badge-secondary" style={{ fontSize: '11px' }}>
+                                {en.examConfig?.displayName || en.examConfig?.name}
+                              </span>
+                            ))
+                          : <span className="text-muted text-sm">None</span>
+                        }
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div>
+                        <div className="text-xs text-muted font-bold" style={{ marginBottom: 4 }}>Class</div>
+                        <span className="text-sm">{student.classYear || '-'}</span>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted font-bold" style={{ marginBottom: 4 }}>Joined</div>
+                        <span className="text-muted text-sm">{new Date(student.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 flex-wrap">
+                      <button title="View Detail" className="btn btn-sm btn-ghost text-primary" onClick={() => navigate(`/admin/students/${student.id}`)}><Eye size={14}/></button>
+                      <button title="View Growth" className="btn btn-sm btn-ghost text-primary" onClick={() => openGrowth(student)}><TrendingUp size={14}/></button>
+                      <button title="Manage Enrollments" className="btn btn-sm btn-ghost text-primary" onClick={() => { setEnrollModal(student); setEnrollSelected(student.enrollments?.map(e => e.examConfigId) || []); }}>Enroll</button>
+                      <button title="Reset Password" className="btn btn-sm btn-ghost text-warning" onClick={() => { setResetModal(student); setNewPassword(''); }}><KeyRound size={14}/></button>
+                      <button title="Delete Student" className="btn btn-sm btn-ghost text-danger" onClick={() => handleDelete(student)}><Trash2 size={14}/></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Enrolled Exams</th>
+                      <th>Class</th>
+                      <th>Joined</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map(student => (
+                      <tr key={student.id} className="premium-row">
+                        <td>
+                          <div className="user-profile-cell">
+                            <div className="user-avatar">{student.name.charAt(0).toUpperCase()}</div>
+                            <div className="user-info">
+                              <h4 className="user-name">{student.name}</h4>
+                              <div className="user-contact">
+                                {student.email && <span className="contact-item"><Mail size={12}/> {student.email}</span>}
+                                <span className="contact-item"><Phone size={12}/> {student.mobile}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex flex-wrap gap-1">
-                          {student.enrollments?.length > 0
-                            ? student.enrollments.map(en => (
-                                <span key={en.id} className="badge badge-secondary" style={{fontSize:'11px'}}>
-                                  {en.examConfig?.displayName || en.examConfig?.name}
-                                </span>
-                              ))
-                            : <span className="text-muted text-sm">None</span>
-                          }
-                        </div>
-                      </td>
-                      <td><span className="text-sm">{student.classYear || '—'}</span></td>
-                      <td><span className="text-muted text-sm">{new Date(student.createdAt).toLocaleDateString()}</span></td>
-                      <td>
-                        <div className="flex gap-2 flex-wrap">
-                          <button title="View Detail" className="btn btn-sm btn-ghost text-primary" onClick={() => navigate(`/admin/students/${student.id}`)}><Eye size={14}/></button>
-                          <button title="View Growth" className="btn btn-sm btn-ghost text-primary" onClick={() => openGrowth(student)}><TrendingUp size={14}/></button>
-                          <button title="Manage Enrollments" className="btn btn-sm btn-ghost text-accent" onClick={() => { setEnrollModal(student); setEnrollSelected(student.enrollments?.map(e => e.examConfigId) || []); }}>📋</button>
-                          <button title="Reset Password" className="btn btn-sm btn-ghost text-warning" onClick={() => { setResetModal(student); setNewPassword(''); }}><KeyRound size={14}/></button>
-                          <button title="Delete Student" className="btn btn-sm btn-ghost text-danger" onClick={() => handleDelete(student)}><Trash2 size={14}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </td>
+                        <td>
+                          <div className="flex flex-wrap gap-1">
+                            {student.enrollments?.length > 0
+                              ? student.enrollments.map(en => (
+                                  <span key={en.id} className="badge badge-secondary" style={{ fontSize: '11px' }}>
+                                    {en.examConfig?.displayName || en.examConfig?.name}
+                                  </span>
+                                ))
+                              : <span className="text-muted text-sm">None</span>
+                            }
+                          </div>
+                        </td>
+                        <td><span className="text-sm">{student.classYear || '-'}</span></td>
+                        <td><span className="text-muted text-sm">{new Date(student.createdAt).toLocaleDateString()}</span></td>
+                        <td>
+                          <div className="flex gap-2 flex-wrap">
+                            <button title="View Detail" className="btn btn-sm btn-ghost text-primary" onClick={() => navigate(`/admin/students/${student.id}`)}><Eye size={14}/></button>
+                            <button title="View Growth" className="btn btn-sm btn-ghost text-primary" onClick={() => openGrowth(student)}><TrendingUp size={14}/></button>
+                            <button title="Manage Enrollments" className="btn btn-sm btn-ghost text-primary" onClick={() => { setEnrollModal(student); setEnrollSelected(student.enrollments?.map(e => e.examConfigId) || []); }}>Enroll</button>
+                            <button title="Reset Password" className="btn btn-sm btn-ghost text-warning" onClick={() => { setResetModal(student); setNewPassword(''); }}><KeyRound size={14}/></button>
+                            <button title="Delete Student" className="btn btn-sm btn-ghost text-danger" onClick={() => handleDelete(student)}><Trash2 size={14}/></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* ── Add Student Modal ── */}
       {showAddModal && (
         <div className="premium-modal-overlay">
           <div className="premium-modal-content" style={{ maxWidth: '640px' }}>
@@ -318,9 +385,7 @@ export const StudentManager = () => {
                       {configs.map(cfg => {
                         const isSelected = formData.enrolledExamConfigs.includes(cfg.id);
                         return (
-                          <button key={cfg.id} type="button"
-                            className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
-                            onClick={() => toggleConfig(cfg.id, formData.enrolledExamConfigs, (fn) => setFormData(prev => ({ ...prev, enrolledExamConfigs: fn(prev.enrolledExamConfigs) })))}>
+                          <button key={cfg.id} type="button" className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`} onClick={() => toggleConfig(cfg.id, formData.enrolledExamConfigs, (fn) => setFormData(prev => ({ ...prev, enrolledExamConfigs: fn(prev.enrolledExamConfigs) })))}>
                             {cfg.displayName}
                           </button>
                         );
@@ -336,7 +401,7 @@ export const StudentManager = () => {
               </>
             ) : (
               <div className="premium-form text-center py-6">
-                <CheckCircle size={52} style={{color: 'var(--success)', margin: '0 auto 12px'}} />
+                <CheckCircle size={52} style={{ color: 'var(--success)', margin: '0 auto 12px' }} />
                 <h2 className="font-bold text-xl mb-1">Student Admitted!</h2>
                 <p className="text-muted mb-5">Account for <strong>{newStudentDetails.name}</strong> is ready.</p>
                 <div className="bg-white border rounded-lg p-4 mb-5 text-left">
@@ -345,7 +410,7 @@ export const StudentManager = () => {
                   <div className="bg-slate-50 p-3 rounded font-mono text-primary font-bold">Password: {newStudentDetails.password}</div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <a href={generateWhatsAppLink()} target="_blank" rel="noreferrer" className="btn btn-lg justify-center" style={{background:'#25D366',color:'#fff',border:'none'}}>
+                  <a href={generateWhatsAppLink()} target="_blank" rel="noreferrer" className="btn btn-lg justify-center" style={{ background: '#25D366', color: '#fff', border: 'none' }}>
                     <MessageCircle size={16}/> Send via WhatsApp
                   </a>
                   <button onClick={handleCopyText} className="btn btn-ghost justify-center border"><Copy size={14}/> Copy Credentials</button>
@@ -357,10 +422,9 @@ export const StudentManager = () => {
         </div>
       )}
 
-      {/* ── Reset Password Modal ── */}
       {resetModal && (
         <div className="premium-modal-overlay">
-          <div className="premium-modal-content" style={{maxWidth:'420px'}}>
+          <div className="premium-modal-content" style={{ maxWidth: '420px' }}>
             <div className="premium-modal-header">
               <div><h2>Reset Password</h2><p>{resetModal.name}</p></div>
               <button className="premium-close" onClick={() => setResetModal(null)}>&times;</button>
@@ -379,10 +443,9 @@ export const StudentManager = () => {
         </div>
       )}
 
-      {/* ── Enrollment Modal ── */}
       {enrollModal && (
         <div className="premium-modal-overlay">
-          <div className="premium-modal-content" style={{maxWidth:'440px'}}>
+          <div className="premium-modal-content" style={{ maxWidth: '440px' }}>
             <div className="premium-modal-header">
               <div><h2>Manage Enrollments</h2><p>{enrollModal.name}</p></div>
               <button className="premium-close" onClick={() => setEnrollModal(null)}>&times;</button>
@@ -393,9 +456,7 @@ export const StudentManager = () => {
                 {configs.map(cfg => {
                   const sel = enrollSelected.includes(cfg.id);
                   return (
-                    <button key={cfg.id} type="button"
-                      className={`btn btn-sm ${sel ? 'btn-primary' : 'btn-ghost'}`}
-                      onClick={() => toggleConfig(cfg.id, enrollSelected, setEnrollSelected)}>
+                    <button key={cfg.id} type="button" className={`btn btn-sm ${sel ? 'btn-primary' : 'btn-ghost'}`} onClick={() => toggleConfig(cfg.id, enrollSelected, setEnrollSelected)}>
                       {cfg.displayName}
                     </button>
                   );
@@ -410,34 +471,32 @@ export const StudentManager = () => {
         </div>
       )}
 
-      {/* ── Growth Modal ── */}
       {growthModal && (
         <div className="premium-modal-overlay">
-          <div className="premium-modal-content" style={{maxWidth:'720px', maxHeight:'85vh', overflowY:'auto'}}>
+          <div className="premium-modal-content" style={{ maxWidth: '720px', maxHeight: '85vh', overflowY: 'auto' }}>
             <div className="premium-modal-header">
               <div>
                 <h2>Test-wise Growth</h2>
-                <p>{growthModal.student.name} — Performance over time</p>
+                <p>{growthModal.student.name} - Performance over time</p>
               </div>
               <button className="premium-close" onClick={() => setGrowthModal(null)}>&times;</button>
             </div>
             <div className="premium-form">
               {growthLoading || !growthModal.growth ? (
-                <div className="loading-center" style={{height:'200px'}}><div className="spinner"></div></div>
+                <div className="loading-center" style={{ height: '200px' }}><div className="spinner"></div></div>
               ) : growthModal.growth.length === 0 ? (
                 <div className="empty-state"><div className="empty-icon"><BarChart2 size={40}/></div><p>No tests completed yet.</p></div>
               ) : (
                 <>
-                  {/* Mini trend bar */}
-                  <div className="flex gap-1 mb-6 items-end" style={{height:'80px'}}>
+                  <div className="flex gap-1 mb-6 items-end" style={{ height: '80px' }}>
                     {growthModal.growth.map((g, i) => (
-                      <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'4px'}}>
+                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                         <div style={{
-                          width:'100%', background:'var(--primary)', borderRadius:'4px 4px 0 0',
-                          height:`${Math.max(g.percentage, 4)}%`, minHeight:'4px',
+                          width: '100%', background: 'var(--primary)', borderRadius: '4px 4px 0 0',
+                          height: `${Math.max(g.percentage, 4)}%`, minHeight: '4px',
                           opacity: 0.6 + (i / growthModal.growth.length) * 0.4,
                         }} title={`${g.percentage}%`}></div>
-                        <span style={{fontSize:'10px', color:'var(--muted)'}}>{i+1}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{i + 1}</span>
                       </div>
                     ))}
                   </div>
@@ -451,9 +510,9 @@ export const StudentManager = () => {
                           <th>Score</th>
                           <th>%</th>
                           <th>Accuracy</th>
-                          <th>✓</th>
-                          <th>✗</th>
-                          <th>—</th>
+                          <th>C</th>
+                          <th>W</th>
+                          <th>S</th>
                           <th>Date</th>
                         </tr>
                       </thead>

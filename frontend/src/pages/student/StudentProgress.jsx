@@ -63,7 +63,11 @@ export const StudentProgress = () => {
     load();
   }, [selectedId]);
 
-  if (loading) return <div className="loading-center"><div className="spinner"></div></div>;
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0', color: '#6b7280' }}>
+      Loading progress data...
+    </div>
+  );
 
   // ── Overall subject chart data ──────────────────────────────
   const subjects = analytics?.subjectStats ? Object.keys(analytics.subjectStats) : [];
@@ -100,100 +104,114 @@ export const StudentProgress = () => {
   const overallAcc = calcAccuracy(totals.correct, totals.wrong);
 
   return (
-    <div className="fade-in">
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
       {/* Header */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">My Progress</h1>
-          <p className="text-muted text-sm mt-2">Test-wise reports and overall subject growth</p>
-        </div>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 600, color: '#111827', margin: '0 0 4px 0' }}>Performance Reports</h1>
+        <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}>Review your specific test submissions and overall growth analytics.</p>
       </div>
 
       {/* Tabs */}
-      <div className="tabs" style={{ maxWidth: '360px', marginBottom: '28px' }}>
-        <button className={`tab-btn ${tab === 'test' ? 'active' : ''}`} onClick={() => setTab('test')}>
-          <FileText size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
-          Test Report
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24, borderBottom: '1px solid #e5e7eb' }}>
+        <button 
+          onClick={() => setTab('test')} 
+          style={{ 
+            background: 'none', border: 'none', padding: '12px 16px', fontSize: 14, fontWeight: 500, cursor: 'pointer',
+            borderBottom: tab === 'test' ? '2px solid #0d1e3d' : '2px solid transparent',
+            color: tab === 'test' ? '#0d1e3d' : '#6b7280',
+            display: 'flex', alignItems: 'center', gap: 8
+          }}
+        >
+          <FileText size={16} /> Test Detail Report
         </button>
-        <button className={`tab-btn ${tab === 'overall' ? 'active' : ''}`} onClick={() => setTab('overall')}>
-          <TrendingUp size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
-          Overall Growth
+        <button 
+          onClick={() => setTab('overall')} 
+          style={{ 
+            background: 'none', border: 'none', padding: '12px 16px', fontSize: 14, fontWeight: 500, cursor: 'pointer',
+            borderBottom: tab === 'overall' ? '2px solid #0d1e3d' : '2px solid transparent',
+            color: tab === 'overall' ? '#0d1e3d' : '#6b7280',
+             display: 'flex', alignItems: 'center', gap: 8
+          }}
+        >
+          <TrendingUp size={16} /> Aggregate Analytics
         </button>
       </div>
 
       {/* ── TAB: TEST REPORT ────────────────────────────────── */}
       {tab === 'test' && (
         attempts.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon"><BarChart2 size={48} /></div>
-            <h3 className="empty-title">No Completed Tests</h3>
-            <p className="empty-desc">Complete your first mock test to see a detailed report.</p>
+          <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px dashed #d1d5db', borderRadius: 6, background: '#fff' }}>
+            <BarChart2 size={48} color="#9ca3af" style={{ margin: '0 auto 16px' }} />
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#374151', margin: '0 0 8px 0' }}>No Completed Tests</h3>
+            <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}>You must submit at least one mock test to generate a performance report.</p>
           </div>
         ) : (
           <>
             {/* Selector row */}
-            <div className="card" style={{ marginBottom: '20px', padding: '18px 24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Select Test</label>
-                <select
-                  className="form-select"
-                  value={selectedId}
-                  onChange={e => setSelectedId(e.target.value)}
-                  style={{ flex: 1, minWidth: '220px' }}
-                >
-                  {attempts.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.test?.title} — {new Date(a.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </option>
-                  ))}
-                </select>
-                <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/result/${selectedId}`)}>
-                  Full Detail <ArrowRight size={14} />
-                </button>
-              </div>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', margin: 0, whiteSpace: 'nowrap' }}>Select Test Attempt</label>
+              <select
+                value={selectedId}
+                onChange={e => setSelectedId(e.target.value)}
+                style={{ flex: 1, minWidth: '220px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 4, background: '#fff', fontSize: 14 }}
+              >
+                {attempts.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.test?.title} — {new Date(a.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </option>
+                ))}
+              </select>
+              <button 
+                onClick={() => navigate(`/result/${selectedId}`)}
+                style={{ padding: '8px 16px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 4, color: '#374151', fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                Full Detail <ArrowRight size={14} />
+              </button>
             </div>
 
-            {detailLoading && <div className="loading-center"><div className="spinner"></div></div>}
+            {detailLoading && <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>Loading test report...</div>}
 
             {!detailLoading && detail && (() => {
               const { attempt, summary } = detail;
               const testAcc = calcAccuracy(attempt.totalCorrect, attempt.totalWrong);
 
               return (
-                <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                   {/* Score Summary row */}
-                  <div className="grid-4" style={{ marginBottom: '20px' }}>
-                    <div className="card" style={{ textAlign: 'center' }}>
-                      <div className="text-muted text-sm font-bold" style={{ marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Score</div>
-                      <div className="page-title text-primary">{summary.score}<span className="text-muted" style={{ fontSize: '16px' }}> /{summary.totalMarks}</span></div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: 8 }}>Total Score</div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: '#0d1e3d' }}>{summary.score}<span style={{ fontSize: 14, color: '#9ca3af' }}> /{summary.totalMarks}</span></div>
                     </div>
-                    <div className="card" style={{ textAlign: 'center' }}>
-                      <div className="text-muted text-sm font-bold" style={{ marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Accuracy</div>
-                      <div className="page-title">{testAcc}%</div>
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: 8 }}>Accuracy</div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: '#0d1e3d' }}>{testAcc}%</div>
                     </div>
-                    <div className="card" style={{ textAlign: 'center' }}>
-                      <div className="text-success text-sm font-bold" style={{ marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Correct</div>
-                      <div className="page-title text-success">{attempt.totalCorrect}</div>
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#16a34a', textTransform: 'uppercase', marginBottom: 8 }}>Vaild Answers</div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: '#16a34a' }}>{attempt.totalCorrect}</div>
                     </div>
-                    <div className="card" style={{ textAlign: 'center' }}>
-                      <div className="text-danger text-sm font-bold" style={{ marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Wrong</div>
-                      <div className="page-title text-danger">{attempt.totalWrong}</div>
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#dc2626', textTransform: 'uppercase', marginBottom: 8 }}>Invalid Answers</div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: '#dc2626' }}>{attempt.totalWrong}</div>
                     </div>
                   </div>
 
                   {/* Subject breakdown for this test */}
                   {Object.keys(testSubjects).length > 0 && (
-                    <div className="card" style={{ marginBottom: '20px' }}>
-                      <h3 style={{ marginBottom: '16px', fontSize: '15px', fontWeight: '700' }}>Subject Summary</h3>
-                      <div className="table-wrap">
-                        <table>
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
+                      <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                        <h3 style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: 0 }}>Subject Breakdown</h3>
+                      </div>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                           <thead>
-                            <tr>
-                              <th>Subject</th>
-                              <th>Correct</th>
-                              <th>Wrong</th>
-                              <th>Skipped</th>
-                              <th>Accuracy</th>
+                            <tr style={{ background: '#fff' }}>
+                              <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Subject</th>
+                              <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Correct</th>
+                              <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Wrong</th>
+                              <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Skipped</th>
+                              <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Accuracy</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -202,19 +220,16 @@ export const StudentProgress = () => {
                               const acc = calcAccuracy(s.correct, s.wrong);
                               return (
                                 <tr key={subj}>
-                                  <td className="font-bold">{subj}</td>
-                                  <td className="text-success font-bold">{s.correct}</td>
-                                  <td className="text-danger font-bold">{s.wrong}</td>
-                                  <td className="text-muted">{s.skipped}</td>
-                                  <td>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <div className="progress-bar" style={{ width: '80px' }}>
-                                        <div
-                                          className={`progress-fill ${acc >= 70 ? 'success' : acc < 40 ? 'danger' : ''}`}
-                                          style={{ width: `${acc}%` }}
-                                        />
+                                  <td style={{ padding: '16px 20px', fontSize: 14, fontWeight: 500, color: '#111827', borderBottom: '1px solid #e5e7eb' }}>{subj}</td>
+                                  <td style={{ padding: '16px 20px', fontSize: 14, fontWeight: 600, color: '#16a34a', borderBottom: '1px solid #e5e7eb' }}>{s.correct}</td>
+                                  <td style={{ padding: '16px 20px', fontSize: 14, fontWeight: 600, color: '#dc2626', borderBottom: '1px solid #e5e7eb' }}>{s.wrong}</td>
+                                  <td style={{ padding: '16px 20px', fontSize: 14, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>{s.skipped}</td>
+                                  <td style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <div style={{ width: 80, height: 6, background: '#f3f4f6', borderRadius: 99, overflow: 'hidden' }}>
+                                        <div style={{ width: `${acc}%`, height: '100%', background: acc >= 70 ? '#16a34a' : acc < 40 ? '#dc2626' : '#d97706' }} />
                                       </div>
-                                      <span className="font-bold text-sm">{acc}%</span>
+                                      <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{acc}%</span>
                                     </div>
                                   </td>
                                 </tr>
@@ -227,22 +242,21 @@ export const StudentProgress = () => {
                   )}
 
                   {/* Question level table */}
-                  <div className="card">
-                    <div className="flex-between" style={{ marginBottom: '16px' }}>
-                      <h3 style={{ fontSize: '15px', fontWeight: '700', margin: 0 }}>Question Analysis</h3>
-                      <span className="badge badge-secondary">{attempt.answers.length} Questions</span>
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: 0 }}>Item Analysis</h3>
+                      <span style={{ fontSize: 12, background: '#e5e7eb', color: '#374151', padding: '2px 8px', borderRadius: 4, fontWeight: 500 }}>{attempt.answers.length} Questions</span>
                     </div>
-                    <div className="table-wrap">
-                      <table>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                           <tr>
-                            <th>Q No.</th>
-                            <th>Subject</th>
-                            <th>Type</th>
-                            <th>Your Answer</th>
-                            <th>Correct Answer</th>
-                            <th>Marks</th>
-                            <th>Result</th>
+                            <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>ID</th>
+                            <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Subject</th>
+                            <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Your Input</th>
+                            <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Verified Answer</th>
+                            <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Assigned Marks</th>
+                            <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Status</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -250,40 +264,24 @@ export const StudentProgress = () => {
                             const subj = ans.question?.subject || ans.question?.section?.subject;
                             const skipped = ans.status === 'NOT_VISITED' || ans.status === 'NOT_ANSWERED';
                             return (
-                              <tr
-                                key={ans.id}
-                                style={{
-                                  background: ans.isCorrect === true
-                                    ? 'rgba(22,163,74,0.04)'
-                                    : ans.isCorrect === false
-                                    ? 'rgba(220,38,38,0.04)'
-                                    : 'transparent'
-                                }}
-                              >
-                                <td className="font-bold">{idx + 1}</td>
-                                <td><span className="badge badge-secondary">{subj || '—'}</span></td>
-                                <td><span className="badge" style={{ background: 'var(--bg-3)', color: 'var(--text-2)' }}>{ans.question?.questionType || '—'}</span></td>
-                                <td className="font-bold">
-                                  {skipped
-                                    ? <span className="text-muted" style={{ fontStyle: 'italic', fontWeight: 400 }}>Skipped</span>
-                                    : (ans.selectedOption || (ans.numericAnswer ?? '—'))}
+                              <tr key={ans.id}>
+                                <td style={{ padding: '12px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb', color: '#4b5563' }}>{idx + 1}</td>
+                                <td style={{ padding: '12px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb', color: '#111827' }}>{subj || 'N/A'}</td>
+                                <td style={{ padding: '12px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb' }}>
+                                  {skipped ? <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Skipped</span> : <span style={{ fontWeight: 500, color: '#111827' }}>{ans.selectedOption || ans.numericAnswer || '—'}</span>}
                                 </td>
-                                <td className="font-bold text-success">
-                                  {ans.question?.questionType === 'MCQ'
-                                    ? ans.question?.correctOption
-                                    : (ans.question?.correctNumericAnswer ?? '—')}
+                                <td style={{ padding: '12px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb', color: '#16a34a', fontWeight: 500 }}>
+                                  {ans.question?.questionType === 'MCQ' ? ans.question?.correctOption : (ans.question?.correctNumericAnswer ?? '—')}
                                 </td>
-                                <td>
-                                  <span className={`font-bold ${ans.marksObtained > 0 ? 'text-success' : ans.marksObtained < 0 ? 'text-danger' : 'text-muted'}`}>
-                                    {ans.marksObtained > 0 ? '+' : ''}{ans.marksObtained ?? 0}
-                                  </span>
+                                <td style={{ padding: '12px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb', fontWeight: 600, color: ans.marksObtained > 0 ? '#16a34a' : ans.marksObtained < 0 ? '#dc2626' : '#9ca3af' }}>
+                                  {ans.marksObtained > 0 ? '+' : ''}{ans.marksObtained ?? 0}
                                 </td>
-                                <td>
-                                  {skipped
-                                    ? <span className="badge" style={{ background: 'var(--bg-3)', color: 'var(--text-3)' }}>Skipped</span>
-                                    : ans.isCorrect
-                                    ? <span className="badge badge-success">Correct</span>
-                                    : <span className="badge badge-danger">Wrong</span>}
+                                <td style={{ padding: '12px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb' }}>
+                                  {skipped 
+                                    ? <span style={{ color: '#6b7280', background: '#f3f4f6', padding: '2px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600, textTransform: 'uppercase' }}>Omitted</span> 
+                                    : ans.isCorrect 
+                                    ? <span style={{ color: '#059669', background: '#ecfdf5', padding: '2px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600, textTransform: 'uppercase' }}>Correct</span> 
+                                    : <span style={{ color: '#b91c1c', background: '#fef2f2', padding: '2px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600, textTransform: 'uppercase' }}>Incorrect</span>}
                                 </td>
                               </tr>
                             );
@@ -292,7 +290,7 @@ export const StudentProgress = () => {
                       </table>
                     </div>
                   </div>
-                </>
+                </div>
               );
             })()}
           </>
@@ -303,121 +301,117 @@ export const StudentProgress = () => {
       {tab === 'overall' && (
         <>
           {/* Summary metrics */}
-          <div className="metrics-cards" style={{ marginBottom: '24px' }}>
-            <div className="metric-box box-blue">
-              <div className="metric-icon"><BookOpen size={20} /></div>
-              <div className="metric-data">
-                <h4>Tests Completed</h4>
-                <h2>{analytics?.totalTests || 0}</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 48, height: 48, background: '#f3f4f6', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4b5563' }}><BookOpen size={24} /></div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: 4 }}>Tests Completed</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#111827' }}>{analytics?.totalTests || 0}</div>
               </div>
             </div>
-            <div className="metric-box box-indigo">
-              <div className="metric-icon"><Award size={20} /></div>
-              <div className="metric-data">
-                <h4>Average Score</h4>
-                <h2>{analytics?.averageScore || 0}</h2>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 48, height: 48, background: '#eff6ff', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}><Award size={24} /></div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: 4 }}>Average Score</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#111827' }}>{analytics?.averageScore || 0}</div>
               </div>
             </div>
-            <div className="metric-box" style={{ borderLeft: '4px solid var(--success)' }}>
-              <div className="metric-icon" style={{ background: 'rgba(22,163,74,0.1)', color: 'var(--success)' }}><CheckCircle size={20} /></div>
-              <div className="metric-data">
-                <h4>Total Correct</h4>
-                <h2 style={{ color: 'var(--success)' }}>{totals.correct}</h2>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 48, height: 48, background: '#ecfdf5', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}><CheckCircle size={24} /></div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: 4 }}>Total Correct</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#16a34a' }}>{totals.correct}</div>
               </div>
             </div>
-            <div className="metric-box" style={{ borderLeft: '4px solid var(--danger)' }}>
-              <div className="metric-icon" style={{ background: 'rgba(220,38,38,0.1)', color: 'var(--danger)' }}><XCircle size={20} /></div>
-              <div className="metric-data">
-                <h4>Overall Accuracy</h4>
-                <h2>{overallAcc}%</h2>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 48, height: 48, background: '#fffbeb', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}><TrendingUp size={24} /></div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: 4 }}>Global Accuracy</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#d97706' }}>{overallAcc}%</div>
               </div>
             </div>
           </div>
 
           {/* Bar chart */}
           {chartData.length > 0 ? (
-            <div className="card" style={{ marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '24px' }}>Subject-Wise Performance (All Tests)</h3>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', marginBottom: 24 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: '0 0 24px 0' }}>Aggregate Subject Performance</h3>
               <div style={{ height: '320px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }} barSize={24}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fill: 'var(--text-2)', fontSize: 13 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: 'var(--text-3)', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{
-                        background: 'var(--card)', border: '1px solid var(--card-border)',
-                        borderRadius: '8px', fontSize: '13px'
-                      }}
-                    />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: '13px', paddingTop: '16px' }} />
-                    <Bar dataKey="Correct" fill="var(--success)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Wrong"   fill="var(--danger)"  radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Skipped" fill="var(--bg-3)"    radius={[4, 4, 0, 0]} />
+                  <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }} barSize={32}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 4, fontSize: 13, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: 13, paddingTop: 16 }} />
+                    <Bar dataKey="Correct" fill="#16a34a" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="Wrong"   fill="#dc2626"  radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="Skipped" fill="#e5e7eb"    radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
           ) : (
-            <div className="empty-state">
-              <div className="empty-icon"><BarChart2 size={48} /></div>
-              <h3 className="empty-title">No Data Yet</h3>
-              <p className="empty-desc">Complete tests to see your subject-wise growth here.</p>
-            </div>
+             <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px dashed #d1d5db', borderRadius: 6, background: '#fff', marginBottom: 24 }}>
+               <BarChart2 size={48} color="#9ca3af" style={{ margin: '0 auto 16px' }} />
+               <h3 style={{ fontSize: 16, fontWeight: 600, color: '#374151', margin: '0 0 8px 0' }}>Insufficient Data</h3>
+               <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}>Visual analytics will populate here once you submit tests.</p>
+             </div>
           )}
 
           {/* Score history table */}
           {attempts.length > 0 && (
-            <div className="card">
-              <h3 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '16px' }}>Test History</h3>
-              <div className="table-wrap">
-                <table>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: 0 }}>Submission History</h3>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>Test</th>
-                      <th>Date</th>
-                      <th>Score</th>
-                      <th>Accuracy</th>
-                      <th>Time</th>
-                      <th></th>
+                      <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Record ID</th>
+                      <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Assessment</th>
+                      <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Completed On</th>
+                      <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Score</th>
+                      <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Accuracy</th>
+                      <th style={{ padding: '12px 20px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: 600, borderBottom: '1px solid #e5e7eb' }}>Duration</th>
+                      <th style={{ padding: '12px 20px', borderBottom: '1px solid #e5e7eb' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {attempts.map((a, idx) => {
                       const acc = calcAccuracy(a.totalCorrect, a.totalWrong);
                       return (
-                        <tr key={a.id}>
-                          <td className="text-muted font-bold">#{idx + 1}</td>
-                          <td>
-                            <div className="font-bold">{a.test?.title}</div>
-                            <span className="badge badge-secondary" style={{ marginTop: '4px', fontSize: '10px' }}>{a.test?.examConfig?.displayName}</span>
+                        <tr key={a.id} style={{ transition: 'background 0.2s', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.background = '#f9fafb'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                          <td style={{ padding: '14px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb', color: '#9ca3af' }}>#{a.id.substring(0,6)}</td>
+                          <td style={{ padding: '14px 20px', borderBottom: '1px solid #e5e7eb' }}>
+                            <div style={{ fontSize: 14, fontWeight: 500, color: '#111827', marginBottom: 2 }}>{a.test?.title}</div>
+                            <span style={{ fontSize: 11, background: '#f3f4f6', color: '#4b5563', padding: '2px 6px', borderRadius: 4 }}>{a.test?.examConfig?.displayName}</span>
                           </td>
-                          <td className="text-muted text-sm">
+                          <td style={{ padding: '14px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb', color: '#4b5563' }}>
                             {new Date(a.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </td>
-                          <td>
-                            <span className={`font-bold ${a.score > 0 ? 'text-success' : 'text-danger'}`}>{a.score}</span>
-                            <span className="text-muted text-xs"> /{a.test?.examConfig?.totalMarks}</span>
+                          <td style={{ padding: '14px 20px', borderBottom: '1px solid #e5e7eb' }}>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: a.score > 0 ? '#16a34a' : '#dc2626' }}>{a.score}</span>
+                            <span style={{ fontSize: 12, color: '#9ca3af' }}> /{a.test?.examConfig?.totalMarks}</span>
                           </td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div className="progress-bar" style={{ width: '60px' }}>
-                                <div className={`progress-fill ${acc >= 70 ? 'success' : acc < 40 ? 'danger' : ''}`} style={{ width: `${acc}%` }} />
+                          <td style={{ padding: '14px 20px', borderBottom: '1px solid #e5e7eb' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 60, height: 6, background: '#f3f4f6', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ width: `${acc}%`, height: '100%', background: acc >= 70 ? '#16a34a' : acc < 40 ? '#dc2626' : '#d97706' }} />
                               </div>
-                              <span className="font-bold text-sm">{acc}%</span>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{acc}%</span>
                             </div>
                           </td>
-                          <td className="text-muted text-sm">
-                            <Clock size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
-                            {fmtTime(a.timeTaken)}
+                          <td style={{ padding: '14px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb', color: '#4b5563' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={14} color="#9ca3af" /> {fmtTime(a.timeTaken)}</div>
                           </td>
-                          <td>
+                          <td style={{ padding: '14px 20px', borderBottom: '1px solid #e5e7eb', textAlign: 'right' }}>
                             <button
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => { setTab('test'); setSelectedId(String(a.id)); }}
+                              style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                              onClick={(e) => { e.stopPropagation(); setTab('test'); setSelectedId(String(a.id)); }}
                             >
-                              Report <ArrowRight size={13} />
+                              Analyze <ArrowRight size={14} />
                             </button>
                           </td>
                         </tr>

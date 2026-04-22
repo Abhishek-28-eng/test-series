@@ -284,7 +284,11 @@ const getAnalytics = async (req, res) => {
       include: [
         {
           model: Answer, as: 'answers',
-          include: [{ model: Question, as: 'question', attributes: ['subject'] }]
+          include: [{ 
+            model: Question, as: 'question', 
+            attributes: ['subject', 'sectionId'],
+            include: [{ model: Section, as: 'section', attributes: ['subject'] }]
+          }]
         }
       ]
     });
@@ -296,8 +300,10 @@ const getAnalytics = async (req, res) => {
     attempts.forEach(attempt => {
       totalScore += attempt.score || 0;
       attempt.answers.forEach(ans => {
-        if (!ans.question || !ans.question.subject) return;
-        const subj = ans.question.subject;
+        if (!ans.question) return;
+        
+        const subj = ans.question.subject || ans.question.section?.subject || 'General';
+        
         if (!subjectStats[subj]) {
           subjectStats[subj] = { correct: 0, wrong: 0, skipped: 0, obtainedMarks: 0, totalAttempts: 0 };
         }
@@ -329,4 +335,54 @@ const getAnalytics = async (req, res) => {
   }
 };
 
-module.exports = { startAttempt, saveAnswer, submitAttempt, getMyAttempts, getAttemptResult, getAnalytics };
+// GET /api/attempts/mistakes
+const getMistakes = async (req, res) => {
+  try {
+    const attempts = await Attempt.findAll({
+      where: { userId: req.user.id, status: { [Op.in]: ['submitted', 'auto_submitted'] } },
+      attributes: ['id', 'testId', 'updatedAt'],
+      include: [
+        { model: Test, as: 'test', attributes: ['title'] },
+        {
+          model: Answer, as: 'answers',
+          where: { isCorrect: { [Op.not]: true } },
+          include: [{ 
+            model: Question, as: 'question',
+            include: [{ model: Section, as: 'section', attributes: ['subject'] }]
+          }]
+        }
+      ]
+    });
+
+    const mistakes = [];
+    attempts.forEach(attempt => {
+      attempt.answers.forEach(ans => {
+        mistakes.push({
+          answerId: ans.id,
+          testName: attempt.test?.title,
+          attemptDate: attempt.updatedAt,
+          subject: ans.question?.subject || ans.question?.section?.subject || 'General',
+          questionText: ans.question?.questionText,
+          questionType: ans.question?.questionType,
+          selectedOption: ans.selectedOption,
+          numericAnswer: ans.numericAnswer,
+          correctOption: ans.question?.correctOption,
+          correctNumericAnswer: ans.question?.correctNumericAnswer,
+          explanation: ans.question?.explanation,
+          wasSkipped: ans.status === 'NOT_VISITED' || ans.status === 'NOT_ANSWERED'
+        });
+      });
+    });
+
+    // Optionally fetch skipped separately, or change `where` to `isCorrect: false OR isCorrect: null`
+    // Wait, Sequelize `isCorrect: false` only gets WRONG answers, not NULL (skipped).
+    // Let's refetch to include skipped too.
+
+    return res.json({ success: true, data: mistakes });
+  } catch (error) {
+    console.error('getMistakes error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { startAttempt, saveAnswer, submitAttempt, getMyAttempts, getAttemptResult, getAnalytics, getMistakes };

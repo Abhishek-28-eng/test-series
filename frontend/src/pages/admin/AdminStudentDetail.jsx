@@ -14,6 +14,9 @@ const calcAcc = (c, w) => c + w > 0 ? Math.round((c / (c + w)) * 100) : 0;
 export const AdminStudentDetail = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  );
 
   const [student, setStudent]           = useState(null);
   const [attempts, setAttempts]         = useState([]);
@@ -23,6 +26,13 @@ export const AdminStudentDetail = () => {
   const [loading, setLoading]           = useState(true);
 
   useEffect(() => { fetchData(); }, [studentId]);
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -84,6 +94,7 @@ export const AdminStudentDetail = () => {
     });
     return map;
   })();
+  const isMobile = viewportWidth <= 768;
 
   return (
     <div className="fade-in">
@@ -105,7 +116,7 @@ export const AdminStudentDetail = () => {
       {/* Student Info */}
       {student && (
         <div className="card" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', gap: '20px', flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
             <div style={{
               width: '48px', height: '48px', borderRadius: '50%',
               background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
@@ -115,7 +126,7 @@ export const AdminStudentDetail = () => {
             }}>
               {student.name?.charAt(0).toUpperCase()}
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <h2 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{student.name}</h2>
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                 {student.email && (
@@ -129,7 +140,7 @@ export const AdminStudentDetail = () => {
                 {student.classYear && <span className="badge badge-secondary">{student.classYear}</span>}
               </div>
             </div>
-            <div>
+            <div style={{ alignSelf: isMobile ? 'flex-start' : 'auto' }}>
               <span className="text-muted text-sm">Tests Completed: </span>
               <span className="font-bold">{attempts.length}</span>
             </div>
@@ -148,13 +159,13 @@ export const AdminStudentDetail = () => {
         <>
           {/* Test Selector */}
           <div className="card" style={{ marginBottom: '20px', padding: '18px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', gap: '16px', flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
               <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Select Test</label>
               <select
                 className="form-select"
                 value={selectedId}
                 onChange={e => setSelectedId(e.target.value)}
-                style={{ flex: 1, minWidth: '220px' }}
+                style={{ flex: 1, minWidth: isMobile ? '100%' : '220px' }}
               >
                 {attempts.map(a => (
                   <option key={a.id} value={a.id}>
@@ -244,9 +255,9 @@ export const AdminStudentDetail = () => {
 
                 {/* Full answer sheet */}
                 <div className="card">
-                  <div className="flex-between" style={{ marginBottom: '16px' }}>
+                  <div className="flex-between" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 10 }}>
                     <h3 style={{ fontSize: '15px', fontWeight: '700', margin: 0 }}>Full Answer Sheet</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
                       <span className="text-muted text-sm">
                         <Clock size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
                         {fmtTime(summary.timeTaken)}

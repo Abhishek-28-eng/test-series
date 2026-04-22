@@ -15,6 +15,7 @@ import { ExamInterface } from './pages/student/ExamInterface';
 import { Result } from './pages/student/Result';
 import { StudentProfile } from './pages/student/StudentProfile';
 import { StudentProgress } from './pages/student/StudentProgress';
+import { MistakesBook } from './pages/student/MistakesBook';
 import { StudentManager } from './pages/admin/StudentManager';
 import { AdminStudentDetail } from './pages/admin/AdminStudentDetail';
 import { GlobalResults } from './pages/admin/GlobalResults';
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/dashboard" element={<ProtectedRoute role="student"><StudentDashboard /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute role="student"><StudentProfile /></ProtectedRoute>} />
             <Route path="/progress" element={<ProtectedRoute role="student"><StudentProgress /></ProtectedRoute>} />
+            <Route path="/mistakes" element={<ProtectedRoute role="student"><MistakesBook /></ProtectedRoute>} />
             <Route path="/result/:id" element={<ProtectedRoute role="student"><Result /></ProtectedRoute>} />
 
             {/* Admin */}

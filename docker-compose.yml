@@ -30,7 +30,7 @@ services:
       dockerfile: Dockerfile
     container_name: latur_backend
     restart: unless-stopped
-    env_file: ./backend/.env
+    env_file: .env
     environment:
       DB_HOST:      db
       DB_PORT:      3306

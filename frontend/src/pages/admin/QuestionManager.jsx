@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
-import { ArrowLeft, UploadCloud, Trash2 } from 'lucide-react';
+import { ArrowLeft, UploadCloud, Trash2, Download, AlertCircle, HelpCircle } from 'lucide-react';
 
 export const QuestionManager = () => {
   const { testId } = useParams();
@@ -86,111 +86,173 @@ export const QuestionManager = () => {
     }
   };
 
-  if (loading) return <div className="loading-center"><div className="spinner"></div></div>;
+  if (loading) return (
+    <div className="loading-center">
+      <div className="spinner" />
+    </div>
+  );
 
   const sectionQs = questions.filter(q => q.sectionId === activeSection);
   const currentSection = test?.examConfig?.sections.find(s => s.id === activeSection);
 
   return (
     <div className="fade-in">
-      <div className="page-header">
+      
+      {/* Structural Header */}
+      <div className="page-header" style={{ marginBottom: 24, borderBottom: '1px solid var(--card-border)', paddingBottom: 16 }}>
         <div>
           <button 
-            className="btn btn-ghost btn-sm mb-4" 
             onClick={() => navigate('/admin/tests')}
-            style={{ paddingLeft: 0, background: 'transparent' }}
+            style={{ padding: 0, background: 'transparent', border: 'none', color: '#6b7280', display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 13, marginBottom: 12, fontWeight: 500 }}
           >
-            <ArrowLeft size={16} /> Back to Tests
+            <ArrowLeft size={14} /> Back to Tests
           </button>
-          <h1 className="page-title">{test?.title}</h1>
-          <p className="text-muted text-sm mt-2">Manage questions by section</p>
-        </div>
-      </div>
-
-      <div className="card mb-6">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-bold">Upload CSV</h3>
-          <a href="/sample_questions.csv" download className="btn btn-sm btn-secondary">
-            Download Sample CSV
-          </a>
-        </div>
-
-        <div className="tabs">
-          {test?.examConfig?.sections.map(section => (
-            <button 
-              key={section.id}
-              className={`tab-btn ${activeSection === section.id ? 'active' : ''}`}
-              onClick={() => setActiveSection(section.id)}
-            >
-              {section.subject}
-            </button>
-          ))}
-        </div>
-
-        <div className={`upload-zone ${uploading ? 'opacity-50' : ''}`} onClick={() => fileInputRef.current?.click()}>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            style={{display: 'none'}} 
-            accept=".csv"
-            onChange={handleFileUpload}
-            disabled={uploading}
-          />
-          <div className="text-primary upload-icon"><UploadCloud size={48} /></div>
-          <div className="upload-text">
-            {uploading ? 'Uploading...' : `Click to upload CSV for ${currentSection?.subject}`}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: 22, fontWeight: 600, color: '#111827', margin: 0 }}>Item Bank: {test?.title}</h1>
+            <span style={{ padding: '2px 8px', background: '#e0e7ff', color: '#4f46e5', borderRadius: 99, fontSize: 11, fontWeight: 600 }}>{test?.examConfig?.displayName}</span>
           </div>
-          <div className="upload-hint">Format must match the sample exactly</div>
-        </div>
-
-        <div className="alert alert-info mt-6 text-sm">
-          <strong>Tip for numeric questions:</strong> Set `questionType` to `NUMERICAL` and provide answer in `correctNumericAnswer` column.
+          <p style={{ fontSize: 13, color: '#4b5563', margin: '4px 0 0 0' }}>Manage questions for each specific section using CSV upload.</p>
         </div>
       </div>
 
-      <div className="card">
-        <h3 className="mb-4">{currentSection?.subject} Questions ({sectionQs.length})</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 24 }}>
         
-        {sectionQs.length > 0 ? (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th width="60">No.</th>
-                  <th>Type</th>
-                  <th>Question Text</th>
-                  <th>Answer</th>
-                  <th>Marks</th>
-                  <th width="80">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sectionQs.map((q, idx) => (
-                  <tr key={q.id}>
-                    <td>{idx + 1}</td>
-                    <td><span className="badge badge-secondary">{q.questionType}</span></td>
-                    <td>{q.questionText}</td>
-                    <td className="font-bold">
-                      {q.questionType === 'MCQ' ? q.correctOption : q.correctNumericAnswer}
-                    </td>
-                    <td>+{q.marks} / -{q.negativeMarks}</td>
-                    <td>
-                      <button className="btn btn-sm btn-ghost text-danger" onClick={() => handleDelete(q.id)}>
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
+        {/* Upload Segment */}
+        <div style={{ background: '#fff', border: '1px solid var(--card-border)', borderRadius: 8, overflow: 'hidden' }}>
+          
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: '#111827' }}>Import Interface</h3>
+            <a href="/sample_questions.csv" download style={{ padding: '6px 12px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 12, fontWeight: 500, color: '#374151', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Download size={14} /> Template CSV
+            </a>
+          </div>
+
+          <div style={{ padding: 20 }}>
+            {/* Section Tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', marginBottom: 20, overflowX: 'auto', whiteSpace: 'nowrap' }}>
+              {test?.examConfig?.sections.map(section => {
+                const isActive = activeSection === section.id;
+                return (
+                  <button 
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    style={{ 
+                      padding: '10px 16px', background: 'none', border: 'none', 
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      color: isActive ? '#f97316' : '#6b7280',
+                      borderBottom: isActive ? '2px solid #f97316' : '2px solid transparent',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {section.subject}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Upload Area */}
+            <div 
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              style={{ 
+                border: '2px dashed #d1d5db', borderRadius: 8, padding: '40px 20px', 
+                textAlign: 'center', cursor: uploading ? 'not-allowed' : 'pointer',
+                background: '#f9fafb', opacity: uploading ? 0.6 : 1, transition: 'all 0.2s',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+              }}
+              onMouseOver={e => !uploading && (e.currentTarget.style.borderColor = '#f97316')}
+              onMouseOut={e => !uploading && (e.currentTarget.style.borderColor = '#d1d5db')}
+            >
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{display: 'none'}} 
+                accept=".csv"
+                onChange={handleFileUpload}
+                disabled={uploading}
+              />
+              <UploadCloud size={40} style={{ color: '#9ca3af', marginBottom: 12 }} />
+              <div style={{ fontSize: 14, fontWeight: 500, color: '#111827', marginBottom: 4 }}>
+                {uploading ? 'Processing file...' : `Click to select CSV for ${currentSection?.subject}`}
+              </div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>Strictly follow the headers in the sample template.</div>
+            </div>
+
+            {/* Inline Hint */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: 12, background: '#eff6ff', borderRadius: 6, border: '1px solid #bfdbfe', marginTop: 16 }}>
+              <AlertCircle size={16} style={{ color: '#3b82f6', marginTop: 2, flexShrink: 0 }} />
+              <div style={{ fontSize: 12.5, color: '#1e3a8a', lineHeight: 1.5 }}>
+                <strong style={{ fontWeight: 600 }}>Numerical Items:</strong> For subjective questions, verify that the <code>questionType</code> column is marked exactly as <code>NUMERICAL</code> and provide the precise answer inside the <code>correctNumericAnswer</code> column.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Existing Questions Data Table */}
+        <div style={{ background: '#fff', border: '1px solid var(--card-border)', borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: '#111827' }}>
+              {currentSection?.subject} Directory <span style={{ color: '#6b7280', fontWeight: 500, fontSize: 13 }}>({sectionQs.length} items)</span>
+            </h3>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            {sectionQs.length > 0 ? (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 600 }}>
+                <thead>
+                  <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                    <th style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', width: 50, textAlign: 'center' }}>#</th>
+                    <th style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>Structure</th>
+                    <th style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', width: '40%' }}>Question Identity</th>
+                    <th style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>Solution</th>
+                    <th style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>Credits</th>
+                    <th style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {sectionQs.map((q, idx) => (
+                    <tr key={q.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#6b7280', textAlign: 'center' }}>{idx + 1}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ display: 'inline-block', padding: '2px 6px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 11, fontWeight: 600, color: '#4b5563' }}>
+                          {q.questionType}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#111827' }}>
+                        <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {q.questionText}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#059669' }}>
+                        {q.questionType === 'MCQ' ? `Opt. ${q.correctOption}` : q.correctNumericAnswer}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, color: '#374151' }}>
+                        <span style={{ color: '#10b981', fontWeight: 600 }}>+{q.marks}</span> / <span style={{ color: '#ef4444' }}>-{q.negativeMarks}</span>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <button 
+                          style={{ padding: '6px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}
+                          onClick={() => handleDelete(q.id)}
+                          onMouseOver={e => e.currentTarget.style.background = '#fef2f2'}
+                          onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                          title="Purge Question"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div style={{ padding: '60px 20px', textAlign: 'center', color: '#6b7280' }}>
+                <HelpCircle size={32} style={{ margin: '0 auto 12px', color: '#d1d5db' }} />
+                <h3 style={{ margin: '0 0 4px 0', fontSize: 15, color: '#111827' }}>Item bank empty</h3>
+                <p style={{ margin: 0, fontSize: 13 }}>Please upload the designated CSV payload above.</p>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="empty-state">
-            <div className="empty-icon text-muted">❓</div>
-            <div className="empty-title">No questions yet</div>
-            <div className="empty-desc">Upload a CSV file to add questions to this section.</div>
-          </div>
-        )}
+        </div>
+
       </div>
     </div>
   );

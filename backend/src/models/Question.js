@@ -64,6 +64,10 @@ module.exports = (sequelize) => {
       type: DataTypes.BOOLEAN,
       defaultValue: false, // For JEE/NEET Section B optional questions
     },
+    explanation: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   });
 
   return Question;

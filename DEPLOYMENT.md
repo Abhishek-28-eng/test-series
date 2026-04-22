@@ -97,11 +97,11 @@ cd app
 
 ## PART 4 — SERVER CONFIGURATION (One-time)
 
-### Step 5: Create production .env
+### Step 5: Create production .env in the root folder
 
 ```bash
-cp backend/.env.production backend/.env
-nano backend/.env
+cp backend/.env.production .env
+nano .env
 ```
 
 Edit these values:
@@ -134,7 +134,7 @@ cp nginx/nginx.http.conf nginx/nginx.conf
 ### Step 7: Start services (HTTP only — before SSL)
 
 ```bash
-docker compose up -d --build
+  docker compose up -d --build
 ```
 
 Wait ~2 minutes for MySQL to initialize. Check:
@@ -277,13 +277,13 @@ docker compose exec backend sh
 Test-Series/
 ├── docker-compose.yml
 ├── .gitignore
+├── .env                    ← ⚠️ NOT committed (production secrets, create from backend/.env.production)
 ├── nginx/
 │   ├── nginx.conf          ← HTTPS config (production)
 │   └── nginx.http.conf     ← HTTP-only (used for cert issuance)
 ├── backend/
 │   ├── Dockerfile
 │   ├── .dockerignore
-│   ├── .env                ← ⚠️ NOT committed (production secrets)
 │   ├── .env.production     ← Template (committed, no secrets)
 │   └── src/
 └── frontend/
