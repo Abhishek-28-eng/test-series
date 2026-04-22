@@ -198,7 +198,7 @@ This sets up MHT-CET, JEE, NEET exam configurations.
 ### Step 12: Create your first admin account
 
 ```bash
-docker compose exec backend node -e "
+docker compose exec latur_backend node -e "
 const { User } = require('./src/models');
 require('dotenv').config();
 async function main() {
