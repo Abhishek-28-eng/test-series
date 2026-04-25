@@ -1,4 +1,59 @@
-const { Institute, User } = require('../models');
+const { Institute, User, ExamConfig, Section } = require('../models');
+
+const STANDARD_EXAM_CONFIGS = [
+  {
+    name: 'MHT-CET_PCM', displayName: 'MHT-CET (PCM)', duration: 180, totalMarks: 200, negativeMarking: false,
+    instructions: 'Section 1 (Physics + Chemistry): 90 minutes | Section 2 (Mathematics): 90 minutes. No negative marking.',
+    sections: [
+      { subject: 'Physics',     totalQuestions: 50, marksPerQuestion: 1, negativeMarksPerQuestion: 0, sectionDuration: 90, sectionOrder: 1 },
+      { subject: 'Chemistry',   totalQuestions: 50, marksPerQuestion: 1, negativeMarksPerQuestion: 0, sectionDuration: 90, sectionOrder: 2 },
+      { subject: 'Mathematics', totalQuestions: 50, marksPerQuestion: 2, negativeMarksPerQuestion: 0, sectionDuration: 90, sectionOrder: 3 },
+    ],
+  },
+  {
+    name: 'MHT-CET_PCB', displayName: 'MHT-CET (PCB)', duration: 180, totalMarks: 200, negativeMarking: false,
+    instructions: 'Physics: 50Q | Chemistry: 50Q | Biology: 100Q. No negative marking.',
+    sections: [
+      { subject: 'Physics',   totalQuestions: 50,  marksPerQuestion: 1, negativeMarksPerQuestion: 0, sectionDuration: null, sectionOrder: 1 },
+      { subject: 'Chemistry', totalQuestions: 50,  marksPerQuestion: 1, negativeMarksPerQuestion: 0, sectionDuration: null, sectionOrder: 2 },
+      { subject: 'Biology',   totalQuestions: 100, marksPerQuestion: 1, negativeMarksPerQuestion: 0, sectionDuration: null, sectionOrder: 3 },
+    ],
+  },
+  {
+    name: 'JEE', displayName: 'JEE Main', duration: 180, totalMarks: 300, negativeMarking: true,
+    instructions: '+4 for correct, -1 for wrong.',
+    sections: [
+      { subject: 'Physics',     totalQuestions: 30, marksPerQuestion: 4, negativeMarksPerQuestion: 1, sectionDuration: null, sectionOrder: 1 },
+      { subject: 'Chemistry',   totalQuestions: 30, marksPerQuestion: 4, negativeMarksPerQuestion: 1, sectionDuration: null, sectionOrder: 2 },
+      { subject: 'Mathematics', totalQuestions: 30, marksPerQuestion: 4, negativeMarksPerQuestion: 1, sectionDuration: null, sectionOrder: 3 },
+    ],
+  },
+  {
+    name: 'NEET', displayName: 'NEET UG', duration: 200, totalMarks: 720, negativeMarking: true,
+    instructions: '+4 for correct, -1 for wrong.',
+    sections: [
+      { subject: 'Physics',   totalQuestions: 50,  marksPerQuestion: 4, negativeMarksPerQuestion: 1, sectionDuration: null, sectionOrder: 1 },
+      { subject: 'Chemistry', totalQuestions: 50,  marksPerQuestion: 4, negativeMarksPerQuestion: 1, sectionDuration: null, sectionOrder: 2 },
+      { subject: 'Biology',   totalQuestions: 100, marksPerQuestion: 4, negativeMarksPerQuestion: 1, sectionDuration: null, sectionOrder: 3 },
+    ],
+  },
+];
+
+const seedExamConfigsForInstitute = async (instituteId) => {
+  for (const config of STANDARD_EXAM_CONFIGS) {
+    const { sections, ...configData } = config;
+    const [ec] = await ExamConfig.findOrCreate({
+      where: { name: configData.name, instituteId },
+      defaults: { ...configData, instituteId },
+    });
+    for (const sec of sections) {
+      await Section.findOrCreate({
+        where: { examConfigId: ec.id, subject: sec.subject },
+        defaults: { ...sec, examConfigId: ec.id },
+      });
+    }
+  }
+};
 
 const getAllInstitutes = async (req, res) => {
   try {
@@ -60,9 +115,12 @@ const createInstitute = async (req, res) => {
       instituteId: institute.id
     });
 
+    // Auto-seed the 4 standard exam configs for this institute
+    await seedExamConfigsForInstitute(institute.id);
+
     return res.status(201).json({
       success: true,
-      message: 'Institute and primary admin created successfully',
+      message: 'Institute, admin, and exam configs created successfully',
       data: { institute, admin: { name: admin.name, mobile: admin.mobile } }
     });
   } catch (error) {

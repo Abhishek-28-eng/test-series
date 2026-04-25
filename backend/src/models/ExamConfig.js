@@ -4,9 +4,8 @@ module.exports = (sequelize) => {
   const ExamConfig = sequelize.define('ExamConfig', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     name: {
-      type: DataTypes.ENUM('MHT-CET_PCM', 'MHT-CET_PCB', 'JEE', 'NEET'),
+      type: DataTypes.STRING(50),
       allowNull: false,
-      unique: true,
     },
     displayName: {
       type: DataTypes.STRING(100),
@@ -28,6 +27,13 @@ module.exports = (sequelize) => {
       type: DataTypes.TEXT,
       allowNull: true,
     },
+  }, {
+    indexes: [
+      {
+        unique: true,
+        fields: ['instituteId', 'name']
+      }
+    ]
   });
 
   return ExamConfig;

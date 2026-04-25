@@ -3,7 +3,9 @@ const { ExamConfig, Section } = require('../models');
 // GET /api/exam-configs
 const getAllConfigs = async (req, res) => {
   try {
+    const where = req.user.instituteId ? { instituteId: req.user.instituteId } : {};
     const configs = await ExamConfig.findAll({
+      where,
       include: [{ model: Section, as: 'sections', order: [['sectionOrder', 'ASC']] }],
     });
     return res.json({ success: true, data: configs });
