@@ -12,35 +12,31 @@ export const ExamInterface = () => {
   const [attempt, setAttempt]           = useState(null);
   const [sections, setSections]         = useState([]);
   const [questions, setQuestions]       = useState([]);
-  const [answers, setAnswers]           = useState({});   // { [questionId]: answerObj }
-  const [selected, setSelected]         = useState({});   // local UI selection { [questionId]: 'A'|'B'|'C'|'D'|number }
+  const [answers, setAnswers]           = useState({});
+  const [selected, setSelected]         = useState({});
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [loading, setLoading]           = useState(true);
 
-  const [activeSectionId, setActiveSectionId]     = useState(null);
+  const [activeSectionId, setActiveSectionId]         = useState(null);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
-  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [showMobilePalette, setShowMobilePalette] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm]     = useState(false);
+  const [showMobilePalette, setShowMobilePalette]     = useState(false);
 
-  const timerRef  = useRef(null);
-  const attemptRef = useRef(null); // keep a stable ref to avoid stale closure
-
-  const selectedRef = useRef(selected);
-  const answersRef = useRef(answers);
+  const timerRef     = useRef(null);
+  const attemptRef   = useRef(null);
+  const selectedRef  = useRef(selected);
+  const answersRef   = useRef(answers);
   const questionsRef = useRef(questions);
 
-  useEffect(() => { selectedRef.current = selected; }, [selected]);
-  useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => { selectedRef.current  = selected;  }, [selected]);
+  useEffect(() => { answersRef.current   = answers;   }, [answers]);
   useEffect(() => { questionsRef.current = questions; }, [questions]);
 
-  /* ── Anti-cheat (Tab switch only) ───────────────────────── */
-  const {
-    violations, maxViolations, warningVisible, warningMsg, dismissWarning
-  } = useAntiCheat(
-    () => { forceSubmitRef.current?.(); },  // auto-submit callback
-    !loading                                 // only enforce after load
+  /* ── Anti-cheat ── */
+  const { violations, maxViolations, warningVisible, warningMsg, dismissWarning } = useAntiCheat(
+    () => forceSubmitRef.current?.(),
+    !loading
   );
-  // stable ref so the hook closure can call forceSubmit even before it's defined
   const forceSubmitRef = useRef(null);
 
   useEffect(() => {
@@ -48,7 +44,7 @@ export const ExamInterface = () => {
     return () => clearInterval(timerRef.current);
   }, [testId]);
 
-  /* ── Init ─────────────────────────────────────────────── */
+  /* ── Init ── */
   const initAttempt = async () => {
     try {
       const res = await api.post('/attempts/start', { testId: parseInt(testId) });
@@ -65,32 +61,28 @@ export const ExamInterface = () => {
       const secs = testData?.examConfig?.sections || [];
       setSections(secs);
 
-      // Time remaining
       const elapsedSec  = Math.floor((Date.now() - new Date(att.startTime).getTime()) / 1000);
       const totalSec    = (testData?.examConfig?.duration || 180) * 60;
       const initialTime = Math.max(0, totalSec - elapsedSec);
       setTimeRemaining(initialTime);
 
-      // Load questions
       const qRes = await api.get(`/questions/test/${testId}`);
       const fetchedQs = qRes.data.data || [];
-      
+
       if (fetchedQs.length === 0) {
         toast.error('This test has no questions yet. Please contact your admin.');
         navigate('/dashboard');
         return;
       }
-      
+
       setQuestions(fetchedQs);
 
-      // Set first section
       if (secs.length > 0) {
         setActiveSectionId(secs[0].id);
       } else if (fetchedQs.length > 0) {
         setActiveSectionId(parseInt(fetchedQs[0].sectionId));
       }
 
-      // Map existing answers and pre-fill local selection
       const ansMap = {};
       const selMap = {};
       attAnswers.forEach(a => {
@@ -111,7 +103,7 @@ export const ExamInterface = () => {
     }
   };
 
-  /* ── Timer ────────────────────────────────────────────── */
+  /* ── Timer ── */
   const startTimer = (initialTime) => {
     timerRef.current = setInterval(() => {
       setTimeRemaining(prev => {
@@ -130,42 +122,30 @@ export const ExamInterface = () => {
     await forceSubmit();
   };
 
-  /* ── Auto-Save (Every 30s) ────────────────────────────── */
+  /* ── Auto-Save every 30s ── */
   useEffect(() => {
     if (loading) return;
     const interval = setInterval(async () => {
       const currentSelected = selectedRef.current;
-      const currentAnswers = answersRef.current;
-      const currentQs = questionsRef.current;
-
+      const currentAnswers  = answersRef.current;
+      const currentQs       = questionsRef.current;
       const promises = [];
       let savedCount = 0;
 
       Object.keys(currentSelected).forEach(qId => {
         const val = currentSelected[qId];
         if (val === undefined || val === null || val === '') return;
-        
         const ans = currentAnswers[qId];
-        const q = currentQs.find(qu => parseInt(qu.id) === parseInt(qId));
+        const q   = currentQs.find(qu => parseInt(qu.id) === parseInt(qId));
         if (!q) return;
-
         const isNumerical = q.questionType === 'NUMERICAL';
-        
         let isDirty = false;
-        if (!ans) {
-           isDirty = true;
-        } else {
-           if (isNumerical) {
-             if (ans.numericAnswer !== parseFloat(val)) isDirty = true;
-           } else {
-             if (ans.selectedOption !== val) isDirty = true;
-           }
-        }
-        
+        if (!ans) isDirty = true;
+        else if (isNumerical  ? ans.numericAnswer !== parseFloat(val) : ans.selectedOption !== val) isDirty = true;
         if (isDirty) {
           const payload = {
             selectedOption: !isNumerical ? val : null,
-            numericAnswer: isNumerical ? parseFloat(val) : null,
+            numericAnswer:  isNumerical  ? parseFloat(val) : null,
           };
           const status = (ans && ans.status !== 'NOT_VISITED' && ans.status !== 'NOT_ANSWERED') ? ans.status : 'ANSWERED';
           promises.push(handleSaveAnswer(qId, status, payload, true));
@@ -178,56 +158,38 @@ export const ExamInterface = () => {
         toast.success(`Auto-saved ${savedCount} answer(s)`, { id: 'autosave', position: 'bottom-right', duration: 2000 });
       }
     }, 30000);
-
     return () => clearInterval(interval);
   }, [loading]);
 
-  /* ── Save answer to backend ───────────────────────────── */
+  /* ── Save answer ── */
   const handleSaveAnswer = async (questionId, status, payload = {}, isSilent = false) => {
     const att = attemptRef.current;
     if (!att) return;
     try {
-      const { data } = await api.post('/attempts/save-answer', {
-        attemptId: att.id,
-        questionId,
-        status,
-        ...payload,
-      });
-      if (data.success) {
-        // backend returns { data: answerObj }
-        setAnswers(prev => ({ ...prev, [questionId]: data.data }));
-      }
+      const { data } = await api.post('/attempts/save-answer', { attemptId: att.id, questionId, status, ...payload });
+      if (data.success) setAnswers(prev => ({ ...prev, [questionId]: data.data }));
     } catch (error) {
-      if (!isSilent) {
-        console.error('Save answer error:', error);
-        toast.error('Failed to save answer');
-      }
+      if (!isSilent) toast.error('Failed to save answer');
     }
   };
 
-  /* ── Derived data ─────────────────────────────────────── */
-  const currentSectionQuestions = questions.filter(q => {
-    return parseInt(q.sectionId ?? q.section?.id) === parseInt(activeSectionId);
-  });
+  /* ── Derived data ── */
+  const currentSectionQuestions = questions.filter(q =>
+    parseInt(q.sectionId ?? q.section?.id) === parseInt(activeSectionId)
+  );
   const currentQuestion = currentSectionQuestions[activeQuestionIndex] || null;
 
-  /* ── Actions ──────────────────────────────────────────── */
-  // User merely SELECTS an option — no network call yet
+  /* ── Actions ── */
   const onSelectOption = (opt) => {
     if (!currentQuestion) return;
     setSelected(prev => ({ ...prev, [currentQuestion.id]: opt }));
   };
 
-  // Save & Next
   const onSaveAndNext = async () => {
     if (!currentQuestion) return;
     const sel = selected[currentQuestion.id];
     const isNumerical = currentQuestion.questionType === 'NUMERICAL';
-
-    const hasAns = isNumerical
-      ? (sel !== undefined && sel !== '' && sel !== null)
-      : !!sel;
-
+    const hasAns = isNumerical ? (sel !== undefined && sel !== '' && sel !== null) : !!sel;
     await handleSaveAnswer(currentQuestion.id, hasAns ? 'ANSWERED' : 'NOT_ANSWERED', {
       selectedOption: !isNumerical ? (sel || null) : null,
       numericAnswer:  isNumerical  ? (parseFloat(sel) || null) : null,
@@ -235,7 +197,6 @@ export const ExamInterface = () => {
     goNext();
   };
 
-  // Mark for Review & Next
   const onMarkForReview = async () => {
     if (!currentQuestion) return;
     const sel = selected[currentQuestion.id];
@@ -247,14 +208,10 @@ export const ExamInterface = () => {
     goNext();
   };
 
-  // Clear Response
   const onClearResponse = async () => {
     if (!currentQuestion) return;
     setSelected(prev => { const n = { ...prev }; delete n[currentQuestion.id]; return n; });
-    await handleSaveAnswer(currentQuestion.id, 'NOT_ANSWERED', {
-      selectedOption: null,
-      numericAnswer: null,
-    });
+    await handleSaveAnswer(currentQuestion.id, 'NOT_ANSWERED', { selectedOption: null, numericAnswer: null });
   };
 
   const goNext = () => {
@@ -285,10 +242,9 @@ export const ExamInterface = () => {
       toast.error('Failed to submit test');
     }
   };
-  // keep ref in sync so useAntiCheat can call it
   forceSubmitRef.current = forceSubmit;
 
-  /* ── Helpers ──────────────────────────────────────────── */
+  /* ── Helpers ── */
   const formatTime = (sec) => {
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
@@ -308,64 +264,98 @@ export const ExamInterface = () => {
   if (loading) return <div className="loading-center"><div className="spinner"></div></div>;
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg">
-      {/* ── Header ── */}
-      <header className="navbar" style={{ position: 'sticky', background: '#fff', borderBottom: '1px solid var(--card-border)', zIndex: 50, padding: '0 16px' }}>
-        <div className="navbar-brand" style={{ maxWidth: '40%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '15px' }}>
+    /* Exam is a standalone full-screen page — NO MainLayout, NO bottom nav */
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
+
+      {/* ── Exam Header ── */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 200,
+        background: '#fff', borderBottom: '1px solid var(--card-border)',
+        padding: '0 16px', height: 58,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', flexShrink: 0,
+      }}>
+        <div style={{
+          fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 15,
+          color: 'var(--navy)', maxWidth: '45%',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
           {attempt?.test?.title || 'Exam'}
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
 
-          {/* Violation badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {violations > 0 && (
-            <div title={`${violations}/${maxViolations} violations`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#dc2626' }}>
-              <AlertTriangle size={13} />
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '3px 8px', background: '#fef2f2',
+              border: '1px solid #fecaca', borderRadius: 6,
+              fontSize: 12, fontWeight: 700, color: '#dc2626',
+            }}>
+              <AlertTriangle size={12} />
               {violations}/{maxViolations}
             </div>
           )}
 
-          <div className={`timer-box ${timeRemaining < 300 ? 'danger' : timeRemaining < 600 ? 'warning' : ''}`} style={{ padding: '8px 12px' }}>
-            <Clock size={16} />
-            <span className="timer-value" style={{ fontSize: '16px' }}>{formatTime(timeRemaining)}</span>
+          <div className={`timer-box ${timeRemaining < 300 ? 'danger' : timeRemaining < 600 ? 'warning' : ''}`}
+            style={{ padding: '6px 10px' }}>
+            <Clock size={15} />
+            <span className="timer-value" style={{ fontSize: 15 }}>{formatTime(timeRemaining)}</span>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowSubmitConfirm(true)}>Submit</button>
-          <button className="mobile-menu-btn" onClick={() => setShowMobilePalette(v => !v)} style={{ background: 'var(--bg-3)', borderRadius: '6px' }}>
+
+          <button className="btn btn-primary btn-sm" onClick={() => setShowSubmitConfirm(true)}>
+            Submit
+          </button>
+
+          {/* Mobile palette toggle — only visible on small screens */}
+          <button
+            onClick={() => setShowMobilePalette(v => !v)}
+            style={{
+              display: 'none', // shown via CSS media query class below
+              background: 'var(--bg-3)', border: 'none', borderRadius: 6,
+              padding: 8, cursor: 'pointer', color: 'var(--text-2)',
+            }}
+            className="exam-palette-toggle"
+          >
             <Info size={18} />
           </button>
         </div>
       </header>
 
-      {/* ── Main ── */}
-      <div className="page" style={{ paddingTop: '20px' }}>
+      {/* ── Body ── */}
+      <div style={{ flex: 1, padding: '16px 20px 24px', maxWidth: 1380, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
 
         {/* Section Tabs */}
-        <div className="tabs mb-4">
-          {sections.map(sec => (
-            <button
-              key={sec.id}
-              className={`tab-btn ${parseInt(activeSectionId) === parseInt(sec.id) ? 'active' : ''}`}
-              onClick={() => { setActiveSectionId(sec.id); setActiveQuestionIndex(0); }}
-            >
-              {sec.subject}
-            </button>
-          ))}
-        </div>
+        {sections.length > 1 && (
+          <div className="tabs" style={{ marginBottom: 16 }}>
+            {sections.map(sec => (
+              <button
+                key={sec.id}
+                className={`tab-btn ${parseInt(activeSectionId) === parseInt(sec.id) ? 'active' : ''}`}
+                onClick={() => { setActiveSectionId(sec.id); setActiveQuestionIndex(0); }}
+              >
+                {sec.subject}
+              </button>
+            ))}
+          </div>
+        )}
 
+        {/* Exam Layout */}
         <div className="exam-layout">
+
           {/* ── Question Panel ── */}
-          <div className="question-panel flex flex-col">
+          <div className="question-panel" style={{ display: 'flex', flexDirection: 'column' }}>
 
             <div className="question-header">
               <span className="question-number">
                 Question {activeQuestionIndex + 1} of {currentSectionQuestions.length}
               </span>
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: 6 }}>
                 <span className="badge badge-success">+{currentQuestion?.marks ?? 0}</span>
                 <span className="badge badge-danger">-{currentQuestion?.negativeMarks ?? 0}</span>
               </div>
             </div>
 
-            <div className="flex-1">
+            <div style={{ flex: 1 }}>
               {currentQuestion ? (
                 <>
                   <div className="question-text">{currentQuestion.questionText}</div>
@@ -381,7 +371,6 @@ export const ExamInterface = () => {
                             key={opt}
                             className={`option-item ${isSelected ? 'selected' : ''}`}
                             onClick={() => onSelectOption(opt)}
-                            style={{ cursor: 'pointer' }}
                           >
                             <span className="option-label">{opt}</span>
                             <span>{optText}</span>
@@ -390,7 +379,7 @@ export const ExamInterface = () => {
                       })}
                     </div>
                   ) : (
-                    <div className="form-group" style={{ maxWidth: '320px' }}>
+                    <div className="form-group" style={{ maxWidth: 320 }}>
                       <label className="form-label">Enter Numerical Answer</label>
                       <input
                         type="number"
@@ -408,37 +397,40 @@ export const ExamInterface = () => {
               )}
             </div>
 
-            <div className="separator mt-8"></div>
+            <div className="separator" style={{ margin: '20px 0 0' }}></div>
 
             {/* Action buttons */}
             {currentQuestion && (
-              <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
-                <div className="flex flex-wrap gap-2">
-                  <button className="btn btn-secondary" onClick={onMarkForReview}>
-                    <Bookmark size={15} /> Mark for Review &amp; Next
+              <div className="exam-action-bar">
+                <div className="exam-action-left">
+                  <button className="btn btn-secondary btn-sm" onClick={onMarkForReview}>
+                    <Bookmark size={14} /> <span className="exam-btn-label">Mark &amp; Next</span>
                   </button>
-                  <button className="btn btn-ghost" onClick={onClearResponse}>
-                    <XCircle size={15} /> Clear
+                  <button className="btn btn-ghost btn-sm" onClick={onClearResponse}>
+                    <XCircle size={14} /> Clear
                   </button>
                 </div>
                 <button className="btn btn-primary" onClick={onSaveAndNext}>
-                  Save &amp; Next <ChevronRight size={17} />
+                  Save &amp; Next <ChevronRight size={16} />
                 </button>
               </div>
             )}
           </div>
 
-          {/* ── Palette ── */}
+          {/* ── Question Palette ── */}
           <div className={`palette-panel ${showMobilePalette ? 'mobile-show' : ''}`}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="palette-title mb-0">Question Palette</h3>
-              <button className="mobile-menu-btn" onClick={() => setShowMobilePalette(false)}>&times;</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 className="palette-title" style={{ margin: 0 }}>Question Palette</h3>
+              <button
+                onClick={() => setShowMobilePalette(false)}
+                style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-2)', lineHeight: 1, padding: '0 4px' }}
+              >&times;</button>
             </div>
 
             <div className="palette-legend">
               <div className="palette-legend-item"><div className="palette-dot" style={{ background: 'var(--success)' }}></div> Answered</div>
               <div className="palette-legend-item"><div className="palette-dot" style={{ background: 'var(--danger)' }}></div> Not Answered</div>
-              <div className="palette-legend-item"><div className="palette-dot" style={{ background: 'var(--accent)' }}></div> Review</div>
+              <div className="palette-legend-item"><div className="palette-dot" style={{ background: 'var(--warning)' }}></div> Review</div>
               <div className="palette-legend-item"><div className="palette-dot" style={{ background: 'var(--bg-3)' }}></div> Not Visited</div>
             </div>
 
@@ -454,27 +446,71 @@ export const ExamInterface = () => {
               ))}
             </div>
 
-            <div className="mt-6 pt-4" style={{ borderTop: '1px solid var(--card-border)' }}>
-              <div className="text-xs text-muted font-bold uppercase mb-2">Stats</div>
-              <div className="grid-2" style={{ gap: '8px' }}>
-                <div className="text-sm">Answered: {currentSectionQuestions.filter(q => answers[q.id]?.status === 'ANSWERED').length}</div>
-                <div className="text-sm">Skipped: {currentSectionQuestions.filter(q => answers[q.id]?.status === 'NOT_ANSWERED').length}</div>
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--card-border)' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-3)', marginBottom: 10 }}>
+                Section Stats
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ background: 'var(--success-bg)', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
+                  <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--success)' }}>
+                    {currentSectionQuestions.filter(q => answers[q.id]?.status === 'ANSWERED').length}
+                  </div>
+                  <div style={{ color: 'var(--success)', fontWeight: 600 }}>Answered</div>
+                </div>
+                <div style={{ background: 'var(--danger-bg)', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
+                  <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--danger)' }}>
+                    {currentSectionQuestions.filter(q => !answers[q.id] || answers[q.id]?.status === 'NOT_VISITED').length}
+                  </div>
+                  <div style={{ color: 'var(--danger)', fontWeight: 600 }}>Remaining</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Submit Confirm Modal ── */}
+      {/* Mobile palette backdrop */}
+      {showMobilePalette && (
+        <div
+          onClick={() => setShowMobilePalette(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+            zIndex: 299, backdropFilter: 'blur(2px)',
+          }}
+        />
+      )}
+
+      {/* ── Submit Confirm Modal — centered, NOT bottom sheet ── */}
       {showSubmitConfirm && (
-        <div className="modal-overlay" onClick={() => setShowSubmitConfirm(false)}>
-          <div className="modal" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-            <div className="empty-icon mb-2">⚠️</div>
-            <h3 className="mb-2">Submit Exam?</h3>
-            <p className="text-muted text-sm mb-6">Are you sure? You cannot change answers after submission.</p>
-            <div className="flex gap-3 w-full">
-              <button className="btn btn-ghost flex-1 justify-center" onClick={() => setShowSubmitConfirm(false)}>Cancel</button>
-              <button className="btn btn-primary flex-1 justify-center" onClick={forceSubmit}>Yes, Submit</button>
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(13,30,61,0.65)',
+            backdropFilter: 'blur(6px)', zIndex: 500,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+          }}
+          onClick={() => setShowSubmitConfirm(false)}
+        >
+          <div
+            style={{
+              background: '#fff', borderRadius: 20, padding: '32px 28px',
+              maxWidth: 400, width: '100%', textAlign: 'center',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
+              animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+            <h3 style={{ margin: '0 0 10px', fontSize: 20, fontFamily: "'Poppins', sans-serif" }}>Submit Exam?</h3>
+            <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--text-2)', lineHeight: 1.6 }}>
+              Are you sure you want to submit? You cannot change answers after submission.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button className="btn btn-ghost flex-1 justify-center" style={{ flex: 1 }} onClick={() => setShowSubmitConfirm(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary flex-1 justify-center" style={{ flex: 1 }} onClick={forceSubmit}>
+                Yes, Submit
+              </button>
             </div>
           </div>
         </div>
@@ -482,19 +518,37 @@ export const ExamInterface = () => {
 
       {/* ── Anti-Cheat Warning Overlay ── */}
       {warningVisible && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 12, maxWidth: 420, width: '100%', textAlign: 'center', padding: '32px 28px', boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <AlertTriangle size={28} style={{ color: '#dc2626' }} />
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 16, maxWidth: 420, width: '100%',
+            textAlign: 'center', padding: '36px 28px',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.4)',
+          }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: '50%',
+              background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 18px',
+            }}>
+              <AlertTriangle size={30} style={{ color: '#dc2626' }} />
             </div>
-            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#111827' }}>Integrity Violation</h2>
-            <p style={{ margin: '0 0 6px', fontSize: 14, color: '#4b5563' }}>{warningMsg}</p>
-            <p style={{ margin: '0 0 20px', fontSize: 13, fontWeight: 600, color: '#dc2626' }}>
+            <h2 style={{ margin: '0 0 10px', fontSize: 20, fontWeight: 800, color: '#111827', fontFamily: "'Poppins', sans-serif" }}>
+              Integrity Violation
+            </h2>
+            <p style={{ margin: '0 0 8px', fontSize: 14, color: '#4b5563', lineHeight: 1.6 }}>{warningMsg}</p>
+            <p style={{ margin: '0 0 24px', fontSize: 13, fontWeight: 700, color: '#dc2626' }}>
               Warning {violations}/{maxViolations} — {maxViolations - violations} more will auto-submit your exam.
             </p>
             <button
               onClick={dismissWarning}
-              style={{ width: '100%', padding: '10px', background: '#dc2626', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
+              style={{
+                width: '100%', padding: '12px', background: '#dc2626',
+                border: 'none', borderRadius: 10, fontSize: 14,
+                fontWeight: 700, color: '#fff', cursor: 'pointer',
+              }}
             >
               I Understand — Return to Exam
             </button>

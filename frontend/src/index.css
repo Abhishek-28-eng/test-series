@@ -1562,3 +1562,47 @@ tbody tr:hover { background: #fafbff; }
   .mobile-only { display: none !important; }
   .mobile-bottom-nav { display: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   EXAM INTERFACE — Standalone full-screen layout
+══════════════════════════════════════════════════════════ */
+
+/* Action bar at bottom of question panel */
+.exam-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.exam-action-left {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Mobile palette toggle — hidden on desktop, visible on mobile */
+.exam-palette-toggle { display: none !important; }
+
+@media (max-width: 768px) {
+  /* Exam body padding — no bottom nav because exam is standalone */
+  .exam-body { padding: 12px 14px 20px !important; }
+
+  /* Show the palette toggle button */
+  .exam-palette-toggle { display: flex !important; }
+
+  /* Action bar: stack on tiny screens */
+  .exam-action-bar { flex-direction: column; align-items: stretch; }
+  .exam-action-left { justify-content: stretch; }
+  .exam-action-left .btn { flex: 1; justify-content: center; }
+  .exam-action-bar > .btn { width: 100%; justify-content: center; }
+
+  /* Exam header smaller fonts */
+  .timer-value { font-size: 14px !important; }
+}
+
+@media (max-width: 480px) {
+  /* On tiny phones, hide verbose button labels */
+  .exam-btn-label { display: none; }
+}
