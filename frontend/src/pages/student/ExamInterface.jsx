@@ -306,15 +306,15 @@ export const ExamInterface = () => {
             Submit
           </button>
 
-          {/* Mobile palette toggle — only visible on small screens */}
+          {/* Palette toggle — CSS shows it on ≤1024px */}
           <button
             onClick={() => setShowMobilePalette(v => !v)}
+            className="exam-palette-toggle"
             style={{
-              display: 'none', // shown via CSS media query class below
               background: 'var(--bg-3)', border: 'none', borderRadius: 6,
               padding: 8, cursor: 'pointer', color: 'var(--text-2)',
             }}
-            className="exam-palette-toggle"
+            title="Question Palette"
           >
             <Info size={18} />
           </button>

@@ -775,7 +775,6 @@ tbody tr:hover { background: #fafbff; }
    EXAM INTERFACE
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .exam-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
-@media (max-width: 1024px) { .exam-layout { grid-template-columns: 1fr; } }
 
 .question-panel {
   background: var(--card);
@@ -1347,19 +1346,10 @@ tbody tr:hover { background: #fafbff; }
   .tab-btn { white-space: nowrap; flex: none; padding: 8px 14px; font-size: 12.5px; }
 
   /* â”€â”€ Exam interface â”€â”€ */
-  .exam-layout { display: flex; flex-direction: column-reverse; gap: 12px; }
+  /* exam-layout handled by 1024px rule above */
   .question-panel { padding: 20px 16px; }
   .question-text { font-size: 15px; margin-bottom: 18px; }
   .option-item { padding: 12px 14px; font-size: 14px; }
-  .palette-panel {
-    position: fixed; top: 0; right: calc(-1 * 300px);
-    bottom: 0; width: min(300px, 85vw); z-index: 300;
-    height: 100vh; border-radius: 0;
-    transition: right 0.3s ease;
-    box-shadow: -4px 0 24px rgba(0,0,0,0.15);
-    overflow-y: auto;
-  }
-  .palette-panel.mobile-show { right: 0; }
   .timer-value { font-size: 16px; }
 
   /* â”€â”€ Result page â”€â”€ */
@@ -1605,4 +1595,21 @@ tbody tr:hover { background: #fafbff; }
 @media (max-width: 480px) {
   /* On tiny phones, hide verbose button labels */
   .exam-btn-label { display: none; }
+}
+
+
+
+/* EXAM MOBILE PALETTE OVERRIDE */
+@media (max-width: 1024px) {
+  .exam-layout { display: block; }
+  .palette-panel {
+    position: fixed !important; top: 0 !important; right: -320px !important;
+    bottom: 0 !important; width: min(300px, 85vw) !important; z-index: 300 !important;
+    height: 100vh !important; border-radius: 0 !important;
+    transition: right 0.3s cubic-bezier(0.16,1,0.3,1) !important;
+    box-shadow: -6px 0 32px rgba(0,0,0,0.18) !important;
+    overflow-y: auto !important;
+  }
+  .palette-panel.mobile-show { right: 0 !important; }
+  .exam-palette-toggle { display: flex !important; }
 }
