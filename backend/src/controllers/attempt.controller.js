@@ -44,6 +44,16 @@ const startAttempt = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Test not found or not available' });
     }
 
+    // ── Schedule window enforcement ─────────────────────────────
+    const now = new Date();
+    if (test.scheduledAt && now < new Date(test.scheduledAt)) {
+      const opensAt = new Date(test.scheduledAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+      return res.status(403).json({ success: false, message: `Test window not open yet. Opens at ${opensAt} IST.` });
+    }
+    if (test.scheduledEnd && now > new Date(test.scheduledEnd)) {
+      return res.status(403).json({ success: false, message: 'Test window has closed. Submissions are no longer accepted.' });
+    }
+
     // Prevent duplicate in-progress attempt
     const existing = await Attempt.findOne({
       where: { userId: req.user.id, testId, status: 'in_progress' },

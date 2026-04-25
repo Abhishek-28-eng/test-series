@@ -10,6 +10,7 @@ const questionRoutes = require('./routes/question.routes');
 const attemptRoutes = require('./routes/attempt.routes');
 const adminRoutes = require('./routes/admin.routes');
 const examConfigRoutes = require('./routes/examConfig.routes');
+const superadminRoutes = require('./routes/superadmin.routes');
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api/questions', questionRoutes);
 app.use('/api/attempts', attemptRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/exam-configs', examConfigRoutes);
+app.use('/api/superadmin', superadminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -51,7 +53,7 @@ const startServer = async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ Database connection established.');
-    await sequelize.sync({ });
+    await sequelize.sync({});
     console.log('✅ Database synchronized.');
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);

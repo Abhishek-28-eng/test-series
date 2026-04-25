@@ -1,293 +1,231 @@
-# 🚀 Deployment Guide — Latur Pattern Platform
-**Domain:** devwithabhi.de  
-**Server:** AWS EC2 — 13.206.122.131
+# TestSeries Pro — Full Deployment Guide
+# EC2 IP: 35.154.125.246 | Domain: devwithabhi.de | Registry: GHCR
 
----
-
-## PART 1 — LOCAL MACHINE (Do this before pushing to GitHub)
-
-### Step 1: Update backend CORS for production
-
-Open `backend/src/server.js` and make sure the CORS origin reads from env:
-```js
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
-}));
+## Architecture
 ```
-This is already done. ✅
-
-### Step 2: Set up production .env
-
-Copy the template and fill in the values:
-```bash
-cp backend/.env.production backend/.env.prod
-```
-Edit `backend/.env.prod` with your actual secrets. **Never commit this file.**
-
-### Step 3: Push to GitHub
-
-```bash
-cd "C:\Users\Abhishek Talole\Desktop\Test-Series"
-git init
-git add .
-git commit -m "Initial production deployment setup"
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git push -u origin main
+git push main
+    → GitHub Actions builds Docker images
+    → Images pushed to ghcr.io (GitHub Container Registry — FREE, private)
+    → SSH into EC2
+    → Pull new images → Restart containers (DB untouched)
 ```
 
 ---
 
-## PART 2 — HOSTINGER DNS (Do this now)
+## STEP 1: GitHub Secrets Setup
 
-Log in to Hostinger → DNS Zone for **devwithabhi.de** and add:
+Go to: **GitHub Repo → Settings → Secrets and variables → Actions → New repository secret**
 
-| Type | Name | Value              | TTL |
-|------|------|--------------------|-----|
-| A    | @    | 13.206.122.131     | 300 |
-| A    | www  | 13.206.122.131     | 300 |
+You only need **3 secrets** (no Docker Hub account needed!):
 
-> DNS propagates in 5–30 minutes. Test with: `ping devwithabhi.de`
+| Secret Name | Value |
+|---|---|
+| `EC2_HOST` | `35.154.125.246` |
+| `EC2_USER` | `ubuntu` |
+| `EC2_SSH_KEY` | Full contents of your `.pem` private key file |
+
+> `GITHUB_TOKEN` is automatically provided by GitHub Actions — no setup needed!
 
 ---
 
-## PART 3 — AWS EC2 SETUP
+## STEP 2: One-Time EC2 Server Setup
 
-### Step 1: EC2 Security Group — open these ports
-
-In AWS Console → EC2 → Security Groups, add inbound rules:
-
-| Port | Protocol | Source    | Purpose          |
-|------|----------|-----------|------------------|
-| 22   | TCP      | Your IP   | SSH              |
-| 80   | TCP      | 0.0.0.0/0 | HTTP             |
-| 443  | TCP      | 0.0.0.0/0 | HTTPS            |
-
-### Step 2: SSH into server
-
+SSH into your EC2:
 ```bash
-ssh -i your-key.pem ubuntu@13.206.122.131
+ssh -i your-key.pem ubuntu@35.154.125.246
 ```
 
-### Step 3: Install Docker & Docker Compose
+Download and run the setup script:
+```bash
+curl -fsSL https://raw.githubusercontent.com/Abhishek-28-eng/test-series/main/setup_ec2.sh -o setup_ec2.sh
+bash setup_ec2.sh
+```
+
+---
+
+## STEP 3: Configure the .env on EC2
 
 ```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
+nano /opt/testseries/.env
+```
 
-# Install Docker
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker ubuntu
+Replace all `CHANGE_ME_*` values. Your `GITHUB_OWNER` is your lowercase GitHub username (e.g. `abhishek-28-eng`):
+
+```env
+DB_PASSWORD=MySecurePass123!
+DB_ROOT_PASSWORD=MyRootPass456!
+JWT_SECRET=some-random-32-char-string-here!
+GITHUB_OWNER=abhishek-28-eng
+```
+
+---
+
+## STEP 4: Upload docker-compose.prod.yml
+
+From your **local machine**:
+```bash
+scp -i your-key.pem docker-compose.prod.yml ubuntu@35.154.125.246:/opt/testseries/
+```
+
+---
+
+## STEP 5: Authenticate EC2 with GHCR
+
+On the EC2 server, create a GitHub Personal Access Token (PAT):
+1. Go to GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Generate new token → scopes: `read:packages`
+3. Copy the token, then on EC2:
+
+```bash
+echo "YOUR_GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+```
+
+This only needs to be done **once** — Docker saves the credentials.
+
+---
+
+## STEP 6: First Deployment (Manual — HTTP)
+
+```bash
+cd /opt/testseries
+
+# Apply docker group without logging out
 newgrp docker
 
-# Verify
-docker --version
-docker compose version
-```
+# Start all services (HTTP only first, before SSL)
+docker compose -f docker-compose.prod.yml up -d
 
-### Step 4: Clone your repository
-
-```bash
-cd ~
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git app
-cd app
+# Check all containers are healthy
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs backend --tail=30
 ```
 
 ---
 
-## PART 4 — SERVER CONFIGURATION (One-time)
-
-### Step 5: Create production .env in the root folder
+## STEP 7: Get SSL Certificate (Let's Encrypt)
 
 ```bash
-cp backend/.env.production .env
-nano .env
-```
-
-Edit these values:
-```env
-PORT=5000
-NODE_ENV=production
-DB_HOST=db
-DB_PORT=3306
-DB_NAME=test_series_db
-DB_USER=latur_user
-DB_PASSWORD=StrongPass@2025
-DB_ROOT_PASSWORD=RootPass@2025
-JWT_SECRET=PASTE_A_LONG_RANDOM_64_CHAR_STRING_HERE
-JWT_EXPIRES_IN=7d
-FRONTEND_URL=https://devwithabhi.de
-UPLOAD_PATH=./uploads
-MAX_FILE_SIZE=5242880
-```
-
-> Generate JWT secret: `openssl rand -hex 32`
-
-Save with `Ctrl+O`, exit with `Ctrl+X`.
-
-### Step 6: Use HTTP-only Nginx config FIRST (needed for SSL cert)
-
-```bash
-cp nginx/nginx.http.conf nginx/nginx.conf
-```
-
-### Step 7: Start services (HTTP only — before SSL)
-
-```bash
-  docker compose up -d --build
-```
-
-Wait ~2 minutes for MySQL to initialize. Check:
-```bash
-docker compose logs -f db        # wait for "ready for connections"
-docker compose logs -f backend   # should say "Database synchronized"
-docker compose ps                # all should be "Up"
-```
-
-Test HTTP works: `curl http://devwithabhi.de/api/health`  
-You should see: `{"status":"OK",...}`
-
----
-
-## PART 5 — SSL CERTIFICATE (Let's Encrypt)
-
-### Step 8: Issue SSL certificate
-
-```bash
-docker compose run --rm certbot certonly \
-  --webroot \
-  --webroot-path /var/www/certbot \
+# Issue SSL cert
+docker compose -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d devwithabhi.de -d www.devwithabhi.de \
   --email your@email.com \
-  --agree-tos \
-  --no-eff-email \
-  -d devwithabhi.de \
-  -d www.devwithabhi.de
+  --agree-tos --no-eff-email
+
+# Switch nginx to SSL config
+cat > /opt/testseries/nginx/nginx.conf << 'EOF'
+server {
+    listen 80;
+    server_name devwithabhi.de www.devwithabhi.de;
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl;
+    server_name devwithabhi.de www.devwithabhi.de;
+
+    ssl_certificate     /etc/letsencrypt/live/devwithabhi.de/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/devwithabhi.de/privkey.pem;
+
+    root  /usr/share/nginx/html;
+    index index.html;
+
+    location / { try_files $uri $uri/ /index.html; }
+
+    location /api/ {
+        proxy_pass         http://backend:5000;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    location /uploads/ { proxy_pass http://backend:5000/uploads/; }
+
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-Content-Type-Options "nosniff";
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript;
+}
+EOF
+
+# Reload nginx
+docker compose -f docker-compose.prod.yml restart frontend
 ```
-
-### Step 9: Switch to HTTPS Nginx config
-
-```bash
-cp nginx/nginx.http.conf nginx/nginx.http.conf.bak
-cp nginx/nginx.conf nginx/nginx.conf.bak 2>/dev/null; true
-
-# The nginx/nginx.conf already has HTTPS config
-# Restore it from git:
-git checkout nginx/nginx.conf
-```
-
-### Step 10: Restart frontend with HTTPS config
-
-```bash
-docker compose restart frontend
-```
-
-Test HTTPS: `curl https://devwithabhi.de/api/health`
 
 ---
 
-## PART 6 — DATABASE SEED (One-time)
-
-### Step 11: Run the exam config seeder
+## STEP 8: Run Database Setup
 
 ```bash
-docker compose exec backend node src/seeders/seedExamConfigs.js
-```
+cd /opt/testseries
 
-This sets up MHT-CET, JEE, NEET exam configurations.
+# Run multi-tenant migration
+docker compose -f docker-compose.prod.yml exec backend node migrate_multi_tenant.js
 
-### Step 12: Create your first admin account
+# Fix unique indexes for multi-tenant
+docker compose -f docker-compose.prod.yml exec backend node fix_unique_indexes.js
 
-```bash
-docker compose exec latur_backend node -e "
+# Create the DEFAULT institute
+docker compose -f docker-compose.prod.yml exec backend node create_institute.js \
+  "Main Institute" DEFAULT "Super Admin" 8767724022 'Abhi@2808'
+
+# Promote to superadmin role
+docker compose -f docker-compose.prod.yml exec backend node -e "
 const { User } = require('./src/models');
-require('dotenv').config();
-async function main() {
-  await require('./src/models').sequelize.authenticate();
-  const user = await User.create({
-    name: 'Admin',
-    email: 'admin@devwithabhi.de',
-    mobile: '9999999999',
-    password: 'Admin@123',
-    role: 'admin'
-  });
-  console.log('Admin created:', user.id);
-  process.exit(0);
-}
-main().catch(e => { console.error(e); process.exit(1); });
+User.findOne({ where: { mobile: '8767724022' } }).then(u => {
+  return u.update({ role: 'superadmin', instituteId: null });
+}).then(() => { console.log('Done'); process.exit(0); });
 "
 ```
 
 ---
 
-## PART 7 — SSL AUTO-RENEWAL
+## STEP 9: CI/CD Is Now Live!
 
-Certbot container already handles auto-renewal (runs every 12 hours).
-Verify it's running:
+Every `git push` to `main` will automatically:
+1. Build fresh Docker images on GitHub's servers
+2. Push to `ghcr.io` (free, private)
+3. SSH into EC2 and pull + restart containers
+4. Database stays running — zero data loss
+
 ```bash
-docker compose ps certbot
+git add .
+git commit -m "feat: your feature"
+git push origin main
+# Watch: GitHub Repo → Actions tab
 ```
 
 ---
 
-## ONGOING: Deploying Updates
+## EC2 Security Group Rules
 
-When you push new code to GitHub:
-
-```bash
-# On the server
-cd ~/app
-git pull origin main
-docker compose up -d --build
-```
+| Type | Protocol | Port | Source |
+|---|---|---|---|
+| SSH | TCP | 22 | Your IP only |
+| HTTP | TCP | 80 | 0.0.0.0/0 |
+| HTTPS | TCP | 443 | 0.0.0.0/0 |
 
 ---
 
-## USEFUL COMMANDS
+## Useful Commands on EC2
 
 ```bash
-# View all logs
-docker compose logs -f
+# Follow all logs
+docker compose -f /opt/testseries/docker-compose.prod.yml logs -f
 
-# View specific service
-docker compose logs -f backend
-docker compose logs -f frontend
-docker compose logs -f db
+# Backend logs only
+docker compose -f /opt/testseries/docker-compose.prod.yml logs backend -f
 
-# Restart a service
-docker compose restart backend
+# Restart services
+docker compose -f /opt/testseries/docker-compose.prod.yml restart
 
-# Stop everything
-docker compose down
+# Access MySQL
+docker exec -it testseries_db mysql -u tsuser -p test_series_db
 
-# Stop and DELETE database (⚠️ destructive)
-docker compose down -v
-
-# MySQL shell
-docker compose exec db mysql -u latur_user -p test_series_db
-
-# Backend shell
-docker compose exec backend sh
-```
-
----
-
-## FILE STRUCTURE AFTER SETUP
-
-```
-Test-Series/
-├── docker-compose.yml
-├── .gitignore
-├── .env                    ← ⚠️ NOT committed (production secrets, create from backend/.env.production)
-├── nginx/
-│   ├── nginx.conf          ← HTTPS config (production)
-│   └── nginx.http.conf     ← HTTP-only (used for cert issuance)
-├── backend/
-│   ├── Dockerfile
-│   ├── .dockerignore
-│   ├── .env.production     ← Template (committed, no secrets)
-│   └── src/
-└── frontend/
-    ├── Dockerfile
-    ├── .dockerignore
-    └── nginx.conf          ← Internal nginx for the container
+# Disk usage
+df -h && docker system df
 ```

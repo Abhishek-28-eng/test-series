@@ -4,7 +4,7 @@ const dbConfig = require('../config/database');
 
 const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, dbConfig);
 
-// Import models
+const Institute = require('./Institute')(sequelize);
 const User = require('./User')(sequelize);
 const ExamConfig = require('./ExamConfig')(sequelize);
 const Section = require('./Section')(sequelize);
@@ -15,6 +15,16 @@ const Answer = require('./Answer')(sequelize);
 const Enrollment = require('./Enrollment')(sequelize);
 
 // ── Associations ──────────────────────────────────────────────
+// Institute Associations
+Institute.hasMany(User, { foreignKey: 'instituteId', as: 'users', onDelete: 'CASCADE' });
+User.belongsTo(Institute, { foreignKey: 'instituteId', as: 'institute' });
+
+Institute.hasMany(Test, { foreignKey: 'instituteId', as: 'tests', onDelete: 'CASCADE' });
+Test.belongsTo(Institute, { foreignKey: 'instituteId', as: 'institute' });
+
+Institute.hasMany(ExamConfig, { foreignKey: 'instituteId', as: 'examConfigs', onDelete: 'CASCADE' });
+ExamConfig.belongsTo(Institute, { foreignKey: 'instituteId', as: 'institute' });
+
 // ExamConfig ↔ Section
 ExamConfig.hasMany(Section, { foreignKey: 'examConfigId', as: 'sections', onDelete: 'CASCADE' });
 Section.belongsTo(ExamConfig, { foreignKey: 'examConfigId', as: 'examConfig' });
@@ -56,6 +66,7 @@ Enrollment.belongsTo(ExamConfig, { foreignKey: 'examConfigId', as: 'examConfig' 
 module.exports = {
   sequelize,
   Sequelize,
+  Institute,
   User,
   ExamConfig,
   Section,

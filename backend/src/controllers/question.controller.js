@@ -187,6 +187,52 @@ const getQuestionsByTest = async (req, res) => {
   }
 };
 
+// PUT /api/questions/:id  (admin)
+const updateQuestion = async (req, res) => {
+  try {
+    const q = await Question.findByPk(req.params.id);
+    if (!q) return res.status(404).json({ success: false, message: 'Question not found' });
+
+    const {
+      questionText, questionType, subject, chapter, topic, difficulty,
+      optionA, optionB, optionC, optionD,
+      correctOption, correctNumericAnswer,
+      marks, negativeMarks, explanation, isSectionB
+    } = req.body;
+
+    const qType = (questionType || q.questionType).trim().toUpperCase();
+    if (!VALID_TYPES.includes(qType)) {
+      return res.status(422).json({ success: false, message: 'questionType must be MCQ or NUMERICAL' });
+    }
+    if (qType === 'MCQ' && correctOption && !VALID_OPTIONS.includes(correctOption.toUpperCase())) {
+      return res.status(422).json({ success: false, message: 'correctOption must be A, B, C, or D' });
+    }
+
+    await q.update({
+      questionText:        questionText        ?? q.questionText,
+      questionType:        qType,
+      subject:             subject             ?? q.subject,
+      chapter:             chapter             ?? q.chapter,
+      topic:               topic               ?? q.topic,
+      difficulty:          difficulty          ?? q.difficulty,
+      optionA:             optionA             ?? q.optionA,
+      optionB:             optionB             ?? q.optionB,
+      optionC:             optionC             ?? q.optionC,
+      optionD:             optionD             ?? q.optionD,
+      correctOption:       qType === 'MCQ'      ? (correctOption?.toUpperCase() ?? q.correctOption) : null,
+      correctNumericAnswer: qType === 'NUMERICAL' ? (correctNumericAnswer ?? q.correctNumericAnswer) : null,
+      marks:               marks               ?? q.marks,
+      negativeMarks:       negativeMarks       ?? q.negativeMarks,
+      explanation:         explanation         ?? q.explanation,
+      isSectionB:          isSectionB          ?? q.isSectionB,
+    });
+
+    return res.json({ success: true, message: 'Question updated', data: q });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // DELETE /api/questions/:id  (admin)
 const deleteQuestion = async (req, res) => {
   try {
@@ -199,4 +245,4 @@ const deleteQuestion = async (req, res) => {
   }
 };
 
-module.exports = { createQuestion, uploadCSV, getQuestionsByTest, deleteQuestion };
+module.exports = { createQuestion, uploadCSV, getQuestionsByTest, updateQuestion, deleteQuestion };

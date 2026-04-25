@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 
 export const Login = () => {
-  const [formData, setFormData] = useState({ mobile: '', password: '' });
+  const [formData, setFormData] = useState({ instituteCode: '', mobile: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -80,6 +80,25 @@ export const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="login-form-standard">
+            <div className="form-group">
+              <label className="form-label" htmlFor="instituteCode">
+                Institute Code (Optional)
+              </label>
+              <div className="login-input-wrap">
+                <span className="login-input-icon">
+                  <GraduationCap size={16} />
+                </span>
+                <input
+                  id="instituteCode"
+                  type="text"
+                  className="form-input login-input"
+                  placeholder="Leave blank for Default Institute"
+                  value={formData.instituteCode}
+                  onChange={(e) => handleChange('instituteCode', e.target.value.toUpperCase())}
+                />
+              </div>
+            </div>
+
             <div className="form-group">
               <label className="form-label" htmlFor="mobile">
                 Mobile Number

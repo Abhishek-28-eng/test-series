@@ -3,6 +3,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth.middleware');
 const {
   getDashboard, getAllStudents, registerStudent, resetPassword, deleteStudent,
   updateEnrollments, getStudentGrowth, getAllResults, exportResults, getStudentAttempts, getStudentAnalytics,
+  getAllStaff, createStaff, deleteStaff, updateUserRole
 } = require('../controllers/admin.controller');
 
 router.get('/dashboard',                          authenticate, requireAdmin, getDashboard);
@@ -16,5 +17,11 @@ router.get('/students/:id/attempts',              authenticate, requireAdmin, ge
 router.get('/students/:id/analytics',             authenticate, requireAdmin, getStudentAnalytics);
 router.get('/results',                            authenticate, requireAdmin, getAllResults);
 router.get('/results/export',                     authenticate, requireAdmin, exportResults);
+
+// Staff management
+router.get('/staff',                              authenticate, requireAdmin, getAllStaff);
+router.post('/staff',                             authenticate, requireAdmin, createStaff);
+router.delete('/staff/:id',                       authenticate, requireAdmin, deleteStaff);
+router.put('/users/:id/role',                     authenticate, requireAdmin, updateUserRole);
 
 module.exports = router;

@@ -3,7 +3,7 @@ const { User } = require('../models');
 const { validationResult } = require('express-validator');
 
 const generateToken = (user) =>
-  jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
+  jwt.sign({ id: user.id, role: user.role, instituteId: user.instituteId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
 
@@ -21,7 +21,11 @@ const register = async (req, res) => {
     const mobileExists = await User.findOne({ where: { mobile } });
     if (mobileExists) return res.status(409).json({ success: false, message: 'Mobile already registered' });
 
-    const user = await User.create({ name, email, mobile, password, role: 'student', examType, classYear, parentMobile });
+    // For public registration, assign to DEFAULT institute if not specified
+    const Institute = require('../models').Institute;
+    const defaultInst = await Institute.findOne({ where: { code: 'DEFAULT' } });
+
+    const user = await User.create({ name, email, mobile, password, role: 'student', examType, classYear, parentMobile, instituteId: defaultInst?.id });
 
     const token = generateToken(user);
     return res.status(201).json({ success: true, message: 'Registration successful', token, user: user.toSafeJSON() });
@@ -37,14 +41,29 @@ const login = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ success: false, errors: errors.array() });
 
-    const { email, mobile, password } = req.body;
+    const { email, mobile, password, instituteCode } = req.body;
     
-    // Support login via email OR mobile
+    // Resolve Institute
+    const Institute = require('../models').Institute;
+    let institute;
+    if (instituteCode) {
+      institute = await Institute.findOne({ where: { code: instituteCode, isActive: true } });
+      if (!institute) return res.status(404).json({ success: false, message: 'Invalid or inactive Institute Code' });
+    } else {
+      // Fallback for existing users / backward compatibility
+      institute = await Institute.findOne({ where: { code: 'DEFAULT' } });
+    }
+
+    if (!institute) return res.status(500).json({ success: false, message: 'Institute system error' });
+
+    // Support login via email OR mobile, scoping by institute
     let user = null;
     if (email) {
-      user = await User.findOne({ where: { email } });
+      user = await User.findOne({ where: { email, instituteId: institute.id } });
+      if (!user) user = await User.findOne({ where: { email, role: 'superadmin' } });
     } else if (mobile) {
-      user = await User.findOne({ where: { mobile } });
+      user = await User.findOne({ where: { mobile, instituteId: institute.id } });
+      if (!user) user = await User.findOne({ where: { mobile, role: 'superadmin' } });
     } else {
       return res.status(400).json({ success: false, message: 'Email or mobile number is required' });
     }
@@ -55,6 +74,12 @@ const login = async (req, res) => {
     if (!user.isActive) {
       return res.status(403).json({ success: false, message: 'Account is deactivated' });
     }
+
+    // Update engagement metrics
+    await user.update({
+      loginCount: (user.loginCount || 0) + 1,
+      lastLoginAt: new Date(),
+    });
 
     const token = generateToken(user);
     return res.json({ success: true, message: 'Login successful', token, user: user.toSafeJSON() });

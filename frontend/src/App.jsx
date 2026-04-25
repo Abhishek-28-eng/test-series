@@ -19,14 +19,41 @@ import { MistakesBook } from './pages/student/MistakesBook';
 import { StudentManager } from './pages/admin/StudentManager';
 import { AdminStudentDetail } from './pages/admin/AdminStudentDetail';
 import { GlobalResults } from './pages/admin/GlobalResults';
+import { StaffManager } from './pages/admin/StaffManager';
+import { SuperAdminDashboard } from './pages/superadmin/SuperAdminDashboard';
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Toaster position="top-right" 
+        <Toaster 
+          position="top-right" 
           toastOptions={{
-            style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }
+            style: { 
+              background: 'var(--bg-secondary)', 
+              color: 'var(--text-primary)', 
+              border: '1px solid var(--card-border)',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+              borderRadius: '12px',
+              padding: '14px 18px',
+              fontSize: '14px',
+              fontWeight: '600',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: 'var(--bg-secondary)',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: 'var(--bg-secondary)',
+              },
+            },
+            duration: 3500,
           }} 
         />
         <Routes>
@@ -51,7 +78,10 @@ export default function App() {
             <Route path="/admin/students" element={<ProtectedRoute role="admin"><StudentManager /></ProtectedRoute>} />
             <Route path="/admin/students/:studentId" element={<ProtectedRoute role="admin"><AdminStudentDetail /></ProtectedRoute>} />
             <Route path="/admin/results" element={<ProtectedRoute role="admin"><GlobalResults /></ProtectedRoute>} />
+            <Route path="/admin/staff" element={<ProtectedRoute role="admin"><StaffManager /></ProtectedRoute>} />
             
+            {/* Super Admin */}
+            <Route path="/superadmin" element={<ProtectedRoute role="superadmin"><SuperAdminDashboard /></ProtectedRoute>} />
           </Route>
 
           {/* Full Screen Exam (No Layout) */}

@@ -36,5 +36,11 @@ const requireStudent = (req, res, next) => {
   }
   next();
 };
+const requireSuperAdmin = (req, res, next) => {
+  if (req.user.role !== 'superadmin') {
+    return res.status(403).json({ success: false, message: 'Super Admin access required' });
+  }
+  next();
+};
 
-module.exports = { authenticate, requireAdmin, requireStudent };
+module.exports = { authenticate, requireAdmin, requireStudent, requireSuperAdmin };

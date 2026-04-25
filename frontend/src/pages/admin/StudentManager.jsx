@@ -278,6 +278,15 @@ export const StudentManager = () => {
                         <div className="text-xs text-muted font-bold" style={{ marginBottom: 4 }}>Joined</div>
                         <span className="text-muted text-sm">{new Date(student.createdAt).toLocaleDateString()}</span>
                       </div>
+                      <div>
+                        <div className="text-xs text-muted font-bold" style={{ marginBottom: 4 }}>Engagement</div>
+                        <div className="text-muted text-xs" style={{ marginBottom: 2 }}>
+                          <strong>{student.loginCount || 0}</strong> logins • <strong>{student.totalAttempts || 0}</strong> attempts
+                        </div>
+                        <div className="text-muted text-xs">
+                          Last: {student.lastLoginAt ? new Date(student.lastLoginAt).toLocaleDateString() : 'Never'}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex gap-2 flex-wrap">
@@ -299,6 +308,7 @@ export const StudentManager = () => {
                       <th>Enrolled Exams</th>
                       <th>Class</th>
                       <th>Joined</th>
+                      <th>Engagement</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -331,6 +341,19 @@ export const StudentManager = () => {
                         </td>
                         <td><span className="text-sm">{student.classYear || '-'}</span></td>
                         <td><span className="text-muted text-sm">{new Date(student.createdAt).toLocaleDateString()}</span></td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <div className="text-xs text-muted" title="Login Count">
+                              <strong>{student.loginCount || 0}</strong> logins
+                            </div>
+                            <div className="text-xs text-muted" title="Last Login">
+                              Last: {student.lastLoginAt ? new Date(student.lastLoginAt).toLocaleDateString() : 'Never'}
+                            </div>
+                            <div className="text-xs text-muted" title="Completed Attempts">
+                              <strong>{student.totalAttempts || 0}</strong> attempts
+                            </div>
+                          </div>
+                        </td>
                         <td>
                           <div className="flex gap-2 flex-wrap">
                             <button title="View Detail" className="btn btn-sm btn-ghost text-primary" onClick={() => navigate(`/admin/students/${student.id}`)}><Eye size={14}/></button>
@@ -400,21 +423,40 @@ export const StudentManager = () => {
                 </form>
               </>
             ) : (
-              <div className="premium-form text-center py-6">
-                <CheckCircle size={52} style={{ color: 'var(--success)', margin: '0 auto 12px' }} />
-                <h2 className="font-bold text-xl mb-1">Student Admitted!</h2>
-                <p className="text-muted mb-5">Account for <strong>{newStudentDetails.name}</strong> is ready.</p>
-                <div className="bg-white border rounded-lg p-4 mb-5 text-left">
-                  <div className="text-xs text-muted font-bold uppercase mb-2">Login Credentials</div>
-                  <div className="bg-slate-50 p-3 rounded mb-2 font-mono text-primary font-bold">Mobile: {newStudentDetails.mobile}</div>
-                  <div className="bg-slate-50 p-3 rounded font-mono text-primary font-bold">Password: {newStudentDetails.password}</div>
+              <div className="premium-form text-center py-8" style={{ animation: 'fadeUp 0.4s ease-out' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 72, height: 72, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', marginBottom: 20 }}>
+                  <CheckCircle size={36} />
                 </div>
-                <div className="flex flex-col gap-2">
-                  <a href={generateWhatsAppLink()} target="_blank" rel="noreferrer" className="btn btn-lg justify-center" style={{ background: '#25D366', color: '#fff', border: 'none' }}>
-                    <MessageCircle size={16}/> Send via WhatsApp
+                <h2 className="font-bold mb-2" style={{ fontSize: '24px', color: 'var(--text-primary)' }}>Student Admitted!</h2>
+                <p className="text-muted mb-6" style={{ fontSize: '15px' }}>
+                  Account for <strong style={{ color: 'var(--text-primary)' }}>{newStudentDetails.name}</strong> is ready and active.
+                </p>
+                
+                <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '24px', marginBottom: '24px', textAlign: 'left', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                  <div className="text-xs text-muted font-bold uppercase mb-4" style={{ letterSpacing: '0.5px' }}>Login Credentials</div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '8px' }}>
+                      <span className="text-sm text-muted">Mobile / User ID</span>
+                      <span className="font-mono font-bold" style={{ color: 'var(--primary)', fontSize: '15px' }}>{newStudentDetails.mobile}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '8px' }}>
+                      <span className="text-sm text-muted">Temporary Password</span>
+                      <span className="font-mono font-bold" style={{ color: 'var(--primary)', fontSize: '15px' }}>{newStudentDetails.password}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <a href={generateWhatsAppLink()} target="_blank" rel="noreferrer" className="btn btn-lg justify-center" style={{ background: '#25D366', color: '#fff', border: 'none', height: '48px', fontSize: '15px', fontWeight: '600' }}>
+                    <MessageCircle size={18}/> Send Credentials via WhatsApp
                   </a>
-                  <button onClick={handleCopyText} className="btn btn-ghost justify-center border"><Copy size={14}/> Copy Credentials</button>
-                  <button onClick={() => { setShowAddModal(false); setNewStudentDetails(null); }} className="text-sm text-muted mt-2">Close</button>
+                  <button onClick={handleCopyText} className="btn justify-center" style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', height: '48px', fontSize: '15px', fontWeight: '600' }}>
+                    <Copy size={16}/> Copy to Clipboard
+                  </button>
+                  <button onClick={() => { setShowAddModal(false); setNewStudentDetails(null); }} className="btn btn-ghost justify-center mt-2" style={{ color: 'var(--muted)' }}>
+                    Done & Close
+                  </button>
                 </div>
               </div>
             )}

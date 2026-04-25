@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
-import { Clock, Info, ChevronRight, Bookmark, XCircle } from 'lucide-react';
+import { Clock, Info, ChevronRight, Bookmark, XCircle, AlertTriangle } from 'lucide-react';
+import { useAntiCheat } from './useAntiCheat';
 
 export const ExamInterface = () => {
   const { testId } = useParams();
@@ -23,6 +24,24 @@ export const ExamInterface = () => {
 
   const timerRef  = useRef(null);
   const attemptRef = useRef(null); // keep a stable ref to avoid stale closure
+
+  const selectedRef = useRef(selected);
+  const answersRef = useRef(answers);
+  const questionsRef = useRef(questions);
+
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => { questionsRef.current = questions; }, [questions]);
+
+  /* ── Anti-cheat (Tab switch only) ───────────────────────── */
+  const {
+    violations, maxViolations, warningVisible, warningMsg, dismissWarning
+  } = useAntiCheat(
+    () => { forceSubmitRef.current?.(); },  // auto-submit callback
+    !loading                                 // only enforce after load
+  );
+  // stable ref so the hook closure can call forceSubmit even before it's defined
+  const forceSubmitRef = useRef(null);
 
   useEffect(() => {
     initAttempt();
@@ -111,8 +130,60 @@ export const ExamInterface = () => {
     await forceSubmit();
   };
 
+  /* ── Auto-Save (Every 30s) ────────────────────────────── */
+  useEffect(() => {
+    if (loading) return;
+    const interval = setInterval(async () => {
+      const currentSelected = selectedRef.current;
+      const currentAnswers = answersRef.current;
+      const currentQs = questionsRef.current;
+
+      const promises = [];
+      let savedCount = 0;
+
+      Object.keys(currentSelected).forEach(qId => {
+        const val = currentSelected[qId];
+        if (val === undefined || val === null || val === '') return;
+        
+        const ans = currentAnswers[qId];
+        const q = currentQs.find(qu => parseInt(qu.id) === parseInt(qId));
+        if (!q) return;
+
+        const isNumerical = q.questionType === 'NUMERICAL';
+        
+        let isDirty = false;
+        if (!ans) {
+           isDirty = true;
+        } else {
+           if (isNumerical) {
+             if (ans.numericAnswer !== parseFloat(val)) isDirty = true;
+           } else {
+             if (ans.selectedOption !== val) isDirty = true;
+           }
+        }
+        
+        if (isDirty) {
+          const payload = {
+            selectedOption: !isNumerical ? val : null,
+            numericAnswer: isNumerical ? parseFloat(val) : null,
+          };
+          const status = (ans && ans.status !== 'NOT_VISITED' && ans.status !== 'NOT_ANSWERED') ? ans.status : 'ANSWERED';
+          promises.push(handleSaveAnswer(qId, status, payload, true));
+          savedCount++;
+        }
+      });
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        toast.success(`Auto-saved ${savedCount} answer(s)`, { id: 'autosave', position: 'bottom-right', duration: 2000 });
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [loading]);
+
   /* ── Save answer to backend ───────────────────────────── */
-  const handleSaveAnswer = async (questionId, status, payload = {}) => {
+  const handleSaveAnswer = async (questionId, status, payload = {}, isSilent = false) => {
     const att = attemptRef.current;
     if (!att) return;
     try {
@@ -127,8 +198,10 @@ export const ExamInterface = () => {
         setAnswers(prev => ({ ...prev, [questionId]: data.data }));
       }
     } catch (error) {
-      console.error('Save answer error:', error);
-      toast.error('Failed to save answer');
+      if (!isSilent) {
+        console.error('Save answer error:', error);
+        toast.error('Failed to save answer');
+      }
     }
   };
 
@@ -212,6 +285,8 @@ export const ExamInterface = () => {
       toast.error('Failed to submit test');
     }
   };
+  // keep ref in sync so useAntiCheat can call it
+  forceSubmitRef.current = forceSubmit;
 
   /* ── Helpers ──────────────────────────────────────────── */
   const formatTime = (sec) => {
@@ -240,6 +315,15 @@ export const ExamInterface = () => {
           {attempt?.test?.title || 'Exam'}
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
+
+          {/* Violation badge */}
+          {violations > 0 && (
+            <div title={`${violations}/${maxViolations} violations`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#dc2626' }}>
+              <AlertTriangle size={13} />
+              {violations}/{maxViolations}
+            </div>
+          )}
+
           <div className={`timer-box ${timeRemaining < 300 ? 'danger' : timeRemaining < 600 ? 'warning' : ''}`} style={{ padding: '8px 12px' }}>
             <Clock size={16} />
             <span className="timer-value" style={{ fontSize: '16px' }}>{formatTime(timeRemaining)}</span>
@@ -392,6 +476,28 @@ export const ExamInterface = () => {
               <button className="btn btn-ghost flex-1 justify-center" onClick={() => setShowSubmitConfirm(false)}>Cancel</button>
               <button className="btn btn-primary flex-1 justify-center" onClick={forceSubmit}>Yes, Submit</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Anti-Cheat Warning Overlay ── */}
+      {warningVisible && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 12, maxWidth: 420, width: '100%', textAlign: 'center', padding: '32px 28px', boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <AlertTriangle size={28} style={{ color: '#dc2626' }} />
+            </div>
+            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#111827' }}>Integrity Violation</h2>
+            <p style={{ margin: '0 0 6px', fontSize: 14, color: '#4b5563' }}>{warningMsg}</p>
+            <p style={{ margin: '0 0 20px', fontSize: 13, fontWeight: 600, color: '#dc2626' }}>
+              Warning {violations}/{maxViolations} — {maxViolations - violations} more will auto-submit your exam.
+            </p>
+            <button
+              onClick={dismissWarning}
+              style={{ width: '100%', padding: '10px', background: '#dc2626', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
+            >
+              I Understand — Return to Exam
+            </button>
           </div>
         </div>
       )}

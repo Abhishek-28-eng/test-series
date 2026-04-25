@@ -7,13 +7,16 @@ const { Op } = require('sequelize');
 const getDashboard = async (req, res) => {
   try {
     const [totalStudents, totalTests, totalAttempts, recentAttempts] = await Promise.all([
-      User.count({ where: { role: 'student' } }),
-      Test.count(),
-      Attempt.count({ where: { status: { [Op.in]: ['submitted', 'auto_submitted'] } } }),
+      User.count({ where: { role: 'student', instituteId: req.user.instituteId } }),
+      Test.count({ where: { instituteId: req.user.instituteId } }),
+      Attempt.count({ 
+        where: { status: { [Op.in]: ['submitted', 'auto_submitted'] } },
+        include: [{ model: User, as: 'user', where: { instituteId: req.user.instituteId }, attributes: [] }]
+      }),
       Attempt.findAll({
         where: { status: { [Op.in]: ['submitted', 'auto_submitted'] } },
         include: [
-          { model: User, as: 'user', attributes: ['id', 'name', 'mobile'] },
+          { model: User, as: 'user', where: { instituteId: req.user.instituteId }, attributes: ['id', 'name', 'mobile'] },
           { model: Test, as: 'test', attributes: ['id', 'title'] },
         ],
         order: [['updatedAt', 'DESC']],
@@ -40,12 +43,28 @@ const getDashboard = async (req, res) => {
 const getAllStudents = async (req, res) => {
   try {
     const students = await User.findAll({
-      where: { role: 'student' },
+      where: { role: 'student', instituteId: req.user.instituteId },
       attributes: { exclude: ['password'] },
       include: [{ model: Enrollment, as: 'enrollments', include: [{ model: ExamConfig, as: 'examConfig' }] }],
       order: [['createdAt', 'DESC']],
     });
-    return res.json({ success: true, data: students });
+
+    const attemptCounts = await Attempt.findAll({
+      attributes: ['userId', [sequelize.fn('COUNT', sequelize.col('id')), 'totalAttempts']],
+      group: ['userId'],
+      raw: true,
+    });
+
+    const countMap = {};
+    attemptCounts.forEach(row => countMap[row.userId] = parseInt(row.totalAttempts, 10));
+
+    const enrichedStudents = students.map(s => {
+      const studentJson = s.toJSON();
+      studentJson.totalAttempts = countMap[s.id] || 0;
+      return studentJson;
+    });
+
+    return res.json({ success: true, data: enrichedStudents });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -61,14 +80,14 @@ const registerStudent = async (req, res) => {
     }
 
     if (email) {
-      const existingEmail = await User.findOne({ where: { email } });
+    const existingEmail = await User.findOne({ where: { email, instituteId: req.user.instituteId } });
       if (existingEmail) return res.status(409).json({ success: false, message: 'Email already registered' });
     }
 
-    const mobileExists = await User.findOne({ where: { mobile } });
+    const mobileExists = await User.findOne({ where: { mobile, instituteId: req.user.instituteId } });
     if (mobileExists) return res.status(409).json({ success: false, message: 'Mobile already registered' });
 
-    const user = await User.create({ name, email: email || null, mobile, password, role: 'student', classYear, parentMobile });
+    const user = await User.create({ name, email: email || null, mobile, password, role: 'student', classYear, parentMobile, instituteId: req.user.instituteId });
 
     // Create enrollments for selected exam configs
     if (Array.isArray(enrolledExamConfigs) && enrolledExamConfigs.length > 0) {
@@ -93,7 +112,7 @@ const resetPassword = async (req, res) => {
     if (!newPassword || newPassword.length < 6) {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
     }
-    const student = await User.findOne({ where: { id: req.params.id, role: 'student' } });
+    const student = await User.findOne({ where: { id: req.params.id, role: 'student', instituteId: req.user.instituteId } });
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
 
     await student.update({ password: newPassword });
@@ -106,7 +125,7 @@ const resetPassword = async (req, res) => {
 // DELETE /api/admin/students/:id
 const deleteStudent = async (req, res) => {
   try {
-    const student = await User.findOne({ where: { id: req.params.id, role: 'student' } });
+    const student = await User.findOne({ where: { id: req.params.id, role: 'student', instituteId: req.user.instituteId } });
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
     await student.destroy();
     return res.json({ success: true, message: 'Student deleted successfully' });
@@ -119,7 +138,7 @@ const deleteStudent = async (req, res) => {
 const updateEnrollments = async (req, res) => {
   try {
     const { examConfigIds = [] } = req.body;
-    const student = await User.findOne({ where: { id: req.params.id, role: 'student' } });
+    const student = await User.findOne({ where: { id: req.params.id, role: 'student', instituteId: req.user.instituteId } });
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
 
     // Remove existing and re-create
@@ -136,7 +155,7 @@ const updateEnrollments = async (req, res) => {
 // GET /api/admin/students/:id/growth
 const getStudentGrowth = async (req, res) => {
   try {
-    const student = await User.findOne({ where: { id: req.params.id, role: 'student' }, attributes: { exclude: ['password'] } });
+    const student = await User.findOne({ where: { id: req.params.id, role: 'student', instituteId: req.user.instituteId }, attributes: { exclude: ['password'] } });
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
 
     const attempts = await Attempt.findAll({
@@ -176,7 +195,7 @@ const getAllResults = async (req, res) => {
     const attempts = await Attempt.findAll({
       where,
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'mobile'] },
+        { model: User, as: 'user', where: { instituteId: req.user.instituteId }, attributes: ['id', 'name', 'mobile'] },
         { model: Test, as: 'test', attributes: ['id', 'title'] },
       ],
       order: [['score', 'DESC']],
@@ -206,7 +225,7 @@ const exportResults = async (req, res) => {
     const attempts = await Attempt.findAll({
       where,
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'mobile'] },
+        { model: User, as: 'user', where: { instituteId: req.user.instituteId }, attributes: ['id', 'name', 'mobile'] },
         { model: Test, as: 'test', attributes: ['id', 'title'] },
       ],
       order: [['score', 'DESC']],
@@ -256,7 +275,7 @@ const getStudentAttempts = async (req, res) => {
 const getStudentAnalytics = async (req, res) => {
   try {
     const student = await User.findOne({
-      where: { id: req.params.id, role: 'student' },
+      where: { id: req.params.id, role: 'student', instituteId: req.user.instituteId },
       attributes: { exclude: ['password'] }
     });
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
@@ -310,7 +329,90 @@ const getStudentAnalytics = async (req, res) => {
   }
 };
 
+// GET /api/admin/staff
+const getAllStaff = async (req, res) => {
+  try {
+    const staff = await User.findAll({
+      where: { role: 'admin', instituteId: req.user.instituteId },
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']],
+    });
+    return res.json({ success: true, data: staff });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /api/admin/staff
+const createStaff = async (req, res) => {
+  try {
+    const { name, email, mobile, password } = req.body;
+
+    if (!name || !mobile || !password) {
+      return res.status(400).json({ success: false, message: 'Name, mobile and password are required' });
+    }
+
+    if (email) {
+      const existingEmail = await User.findOne({ where: { email, instituteId: req.user.instituteId } });
+      if (existingEmail) return res.status(409).json({ success: false, message: 'Email already registered' });
+    }
+
+    const mobileExists = await User.findOne({ where: { mobile, instituteId: req.user.instituteId } });
+    if (mobileExists) return res.status(409).json({ success: false, message: 'Mobile already registered' });
+
+    const user = await User.create({ name, email: email || null, mobile, password, role: 'admin', instituteId: req.user.instituteId });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Staff member created successfully.',
+      data: { id: user.id, name: user.name, mobile: user.mobile },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// DELETE /api/admin/staff/:id
+const deleteStaff = async (req, res) => {
+  try {
+    if (req.user.id === parseInt(req.params.id)) {
+      return res.status(403).json({ success: false, message: 'You cannot delete your own account' });
+    }
+
+    const staff = await User.findOne({ where: { id: req.params.id, role: 'admin', instituteId: req.user.instituteId } });
+    if (!staff) return res.status(404).json({ success: false, message: 'Staff member not found' });
+    
+    await staff.destroy();
+    return res.json({ success: true, message: 'Staff member deleted successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// PUT /api/admin/users/:id/role
+const updateUserRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!['admin', 'student'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role specified' });
+    }
+    
+    if (req.user.id === parseInt(req.params.id)) {
+      return res.status(403).json({ success: false, message: 'You cannot change your own role' });
+    }
+
+    const user = await User.findOne({ where: { id: req.params.id } });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    await user.update({ role });
+    return res.json({ success: true, message: `User role updated to ${role}` });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getDashboard, getAllStudents, registerStudent, resetPassword, deleteStudent,
   updateEnrollments, getStudentGrowth, getAllResults, exportResults, getStudentAttempts, getStudentAnalytics,
+  getAllStaff, createStaff, deleteStaff, updateUserRole
 };

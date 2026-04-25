@@ -12,13 +12,11 @@ module.exports = (sequelize) => {
     email: {
       type: DataTypes.STRING(150),
       allowNull: true,
-      unique: true,
       validate: { isEmail: true },
     },
     mobile: {
       type: DataTypes.STRING(15),
       allowNull: false,
-      unique: true,
       validate: { notEmpty: true },
     },
     password: {
@@ -26,7 +24,7 @@ module.exports = (sequelize) => {
       allowNull: false,
     },
     role: {
-      type: DataTypes.ENUM('admin', 'student'),
+      type: DataTypes.STRING(20),
       defaultValue: 'student',
     },
     examType: {
@@ -44,6 +42,14 @@ module.exports = (sequelize) => {
     isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+    },
+    loginCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    lastLoginAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
   }, {
     hooks: {

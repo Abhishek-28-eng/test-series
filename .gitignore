@@ -1,8 +1,14 @@
 # Git ignore rules for Test-Series project
 
 # ── Environment files ───────────────────────────────────────
+.env
+.env.local
+.env.production
+.env.prod
 backend/.env
 backend/.env.local
+backend/.env.production
+backend/.env.prod
 **/node_modules/
 
 # ── Build outputs ────────────────────────────────────────────

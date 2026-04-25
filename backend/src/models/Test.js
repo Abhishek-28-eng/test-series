@@ -24,6 +24,10 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: true,
     },
+    scheduledEnd: {
+      type: DataTypes.DATE,
+      allowNull: true,   // null = no end limit
+    },
     createdBy: {
       type: DataTypes.INTEGER,
       allowNull: true, // admin user id

@@ -3,7 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, CalendarClock } from 'lucide-react';
+
+const getWindowStatus = (test) => {
+  if (!test.scheduledAt && !test.scheduledEnd) return { isLive: true, text: 'Available now' };
+  const now = new Date();
+  if (test.scheduledAt && now < new Date(test.scheduledAt)) {
+    const opensAt = new Date(test.scheduledAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+    return { isLive: false, text: `Opens: ${opensAt}`, type: 'upcoming' };
+  }
+  if (test.scheduledEnd && now > new Date(test.scheduledEnd)) {
+    return { isLive: false, text: 'Test window has closed', type: 'closed' };
+  }
+  
+  const closesAt = test.scheduledEnd ? new Date(test.scheduledEnd).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : 'No end limit';
+  return { isLive: true, text: `Closes: ${closesAt}`, type: 'live' };
+};
 
 export const StudentDashboard = () => {
   const [tests, setTests] = useState([]);
@@ -104,30 +119,57 @@ export const StudentDashboard = () => {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {availableTests.map(test => (
-                <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 16, padding: '20px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
-                  
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', marginBottom: 4, textTransform: 'uppercase' }}>
-                      {test.examConfig?.displayName}
+              {availableTests.map(test => {
+                const winStatus = getWindowStatus(test);
+                return (
+                  <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 16, padding: '20px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
+                    
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#4b5563', marginBottom: 4, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {test.examConfig?.displayName}
+                        {winStatus.type && (
+                          <span style={{ 
+                            padding: '2px 6px', borderRadius: 4, fontSize: 10,
+                            background: winStatus.type === 'upcoming' ? '#e0e7ff' : winStatus.type === 'closed' ? '#fee2e2' : '#dcfce7',
+                            color: winStatus.type === 'upcoming' ? '#3730a3' : winStatus.type === 'closed' ? '#991b1b' : '#166534'
+                          }}>
+                            {winStatus.type.toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 16, fontWeight: 500, color: '#111827', marginBottom: 8 }}>
+                        {test.title}
+                      </div>
+                      <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#6b7280', flexDirection: isMobile ? 'column' : 'row' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={14} /> {test.examConfig?.duration} mins</span>
+                        <span>Total Marks: {test.examConfig?.totalMarks}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: winStatus.isLive ? '#059669' : '#d97706' }}>
+                          <CalendarClock size={14} /> {winStatus.text}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 500, color: '#111827', marginBottom: 8 }}>
-                      {test.title}
-                    </div>
-                    <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#6b7280', flexDirection: isMobile ? 'column' : 'row' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={14} /> {test.examConfig?.duration} mins</span>
-                      <span>Total Marks: {test.examConfig?.totalMarks}</span>
-                    </div>
-                  </div>
 
-                  <button 
-                    onClick={() => handleStartTest(test.id)}
-                    style={{ padding: '8px 24px', background: '#0d1e3d', color: '#fff', border: 'none', borderRadius: 4, fontSize: 14, fontWeight: 500, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}
-                  >
-                    Start Test
-                  </button>
-                </div>
-              ))}
+                    <button 
+                      onClick={() => winStatus.isLive && handleStartTest(test.id)}
+                      disabled={!winStatus.isLive}
+                      style={{ 
+                        padding: '8px 24px', 
+                        background: winStatus.isLive ? '#0d1e3d' : '#9ca3af', 
+                        color: '#fff', 
+                        border: 'none', 
+                        borderRadius: 4, 
+                        fontSize: 14, 
+                        fontWeight: 500, 
+                        cursor: winStatus.isLive ? 'pointer' : 'not-allowed', 
+                        width: isMobile ? '100%' : 'auto',
+                        opacity: winStatus.isLive ? 1 : 0.8
+                      }}
+                    >
+                      {winStatus.type === 'closed' ? 'Closed' : winStatus.type === 'upcoming' ? 'Upcoming' : 'Start Test'}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

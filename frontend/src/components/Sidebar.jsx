@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, FileText, Users, Award, User, 
-  TrendingUp, GraduationCap, LogOut, Settings 
+  TrendingUp, GraduationCap, LogOut, Settings, Building2 
 } from 'lucide-react';
 
 export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
@@ -35,7 +35,7 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
             <div>
               <h2>TestSeries<span style={{ marginLeft: 4 }}>Pro</span></h2>
               <span className="sidebar-role-badge">
-                {user.role === 'admin' ? '⚡ Admin Panel' : '📚 Student Portal'}
+                {user.role === 'superadmin' ? '⚡ Super Admin' : user.role === 'admin' ? '⚡ Admin Panel' : '📚 Student Portal'}
               </span>
             </div>
           </div>
@@ -45,7 +45,19 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
         <nav className="sidebar-nav">
           <div className="sidebar-section-label">Main Menu</div>
 
-          {user.role === 'admin' ? (
+          {user.role === 'superadmin' ? (
+            <>
+              <NavLink
+                to="/superadmin"
+                end
+                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                onClick={() => setMobileOpen(false)}
+              >
+                <Building2 size={17} />
+                Institute Onboarding
+              </NavLink>
+            </>
+          ) : user.role === 'admin' ? (
             <>
               <NavLink
                 to="/admin"
@@ -82,6 +94,15 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
               >
                 <Award size={17} />
                 All Results
+              </NavLink>
+
+              <NavLink
+                to="/admin/staff"
+                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                onClick={() => setMobileOpen(false)}
+              >
+                <Settings size={17} />
+                Staff Management
               </NavLink>
             </>
           ) : (
@@ -137,7 +158,7 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
                 {user.name}
               </div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>
-                {user.role === 'admin' ? 'Administrator' : 'Student'}
+                {user.role === 'superadmin' ? 'Super Admin' : user.role === 'admin' ? 'Administrator' : 'Student'}
               </div>
             </div>
             <LogOut size={15} color="rgba(255,255,255,0.45)" />

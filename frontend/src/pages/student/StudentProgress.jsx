@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
-import { TrendingUp, BookOpen, CheckCircle, XCircle, BarChart2, Award, Clock, ArrowRight, FileText } from 'lucide-react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { TrendingUp, BookOpen, CheckCircle, XCircle, BarChart2, Award, Clock, ArrowRight, FileText, Activity } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const fmtTime = (secs) => {
   if (!secs) return '—';
@@ -102,6 +102,15 @@ export const StudentProgress = () => {
   }, { correct: 0, wrong: 0, skipped: 0 });
 
   const overallAcc = calcAccuracy(totals.correct, totals.wrong);
+
+  // ── Score Trend timeline ───────────────────────────────────
+  const timelineData = [...attempts].reverse().map((a, idx) => ({
+    name: `Test ${idx + 1}`,
+    testName: a.test?.title || `Test #${String(a.id).substring(0, 4)}`,
+    score: a.score,
+    accuracy: calcAccuracy(a.totalCorrect, a.totalWrong),
+    date: new Date(a.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+  }));
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
@@ -332,6 +341,37 @@ export const StudentProgress = () => {
             </div>
           </div>
 
+          {/* Historical Score Trend LineChart */}
+          {timelineData.length > 0 && (
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+                <Activity size={20} color="#2563eb" />
+                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: 0 }}>Performance Trend Over Time</h3>
+              </div>
+              <div style={{ height: '320px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={timelineData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <Tooltip 
+                      contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 13, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} 
+                      labelStyle={{ fontWeight: 600, color: '#111827', marginBottom: 6 }}
+                      formatter={(value, name) => [name === 'Score' ? value : `${value}%`, name]}
+                      labelFormatter={(label, payload) => {
+                        const d = payload?.[0]?.payload;
+                        return d ? `${d.testName} (${d.date})` : label;
+                      }}
+                    />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: 13, paddingTop: 16 }} />
+                    <Line type="monotone" dataKey="score" name="Score" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, fill: '#2563eb', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="accuracy" name="Accuracy" stroke="#16a34a" strokeWidth={3} dot={{ r: 4, fill: '#16a34a', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
           {/* Bar chart */}
           {chartData.length > 0 ? (
             <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '24px', marginBottom: 24 }}>
@@ -383,7 +423,7 @@ export const StudentProgress = () => {
                       const acc = calcAccuracy(a.totalCorrect, a.totalWrong);
                       return (
                         <tr key={a.id} style={{ transition: 'background 0.2s', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.background = '#f9fafb'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                          <td style={{ padding: '14px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb', color: '#9ca3af' }}>#{a.id.substring(0,6)}</td>
+                          <td style={{ padding: '14px 20px', fontSize: 13, borderBottom: '1px solid #e5e7eb', color: '#9ca3af' }}>#{String(a.id).substring(0,6)}</td>
                           <td style={{ padding: '14px 20px', borderBottom: '1px solid #e5e7eb' }}>
                             <div style={{ fontSize: 14, fontWeight: 500, color: '#111827', marginBottom: 2 }}>{a.test?.title}</div>
                             <span style={{ fontSize: 11, background: '#f3f4f6', color: '#4b5563', padding: '2px 6px', borderRadius: 4 }}>{a.test?.examConfig?.displayName}</span>
