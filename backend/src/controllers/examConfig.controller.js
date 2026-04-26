@@ -3,12 +3,32 @@ const { ExamConfig, Section } = require('../models');
 // GET /api/exam-configs
 const getAllConfigs = async (req, res) => {
   try {
-    const where = req.user.instituteId ? { instituteId: req.user.instituteId } : {};
+    const { Op } = require('sequelize');
+    const where = req.user.instituteId 
+      ? { 
+          [Op.or]: [
+            { instituteId: req.user.instituteId },
+            { instituteId: 1 },
+            { instituteId: null }
+          ]
+        } 
+      : {};
     const configs = await ExamConfig.findAll({
       where,
       include: [{ model: Section, as: 'sections', order: [['sectionOrder', 'ASC']] }],
     });
-    return res.json({ success: true, data: configs });
+
+    // Deduplicate by name: prefer institute-specific config over global one
+    const configMap = new Map();
+    for (const cfg of configs) {
+      if (!configMap.has(cfg.name)) {
+        configMap.set(cfg.name, cfg);
+      } else if (cfg.instituteId === req.user.instituteId) {
+        configMap.set(cfg.name, cfg);
+      }
+    }
+
+    return res.json({ success: true, data: Array.from(configMap.values()) });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
