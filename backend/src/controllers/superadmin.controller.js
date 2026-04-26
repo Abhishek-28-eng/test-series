@@ -42,10 +42,16 @@ const STANDARD_EXAM_CONFIGS = [
 const seedExamConfigsForInstitute = async (instituteId) => {
   for (const config of STANDARD_EXAM_CONFIGS) {
     const { sections, ...configData } = config;
+    
+    // To bypass the legacy unique constraint on `name` in the production DB,
+    // we append the instituteId to make the internal name globally unique.
+    const uniqueName = `${configData.name}_${instituteId}`;
+    
     const [ec] = await ExamConfig.findOrCreate({
-      where: { name: configData.name, instituteId },
-      defaults: { ...configData, instituteId },
+      where: { name: uniqueName, instituteId },
+      defaults: { ...configData, name: uniqueName, instituteId },
     });
+    
     for (const sec of sections) {
       await Section.findOrCreate({
         where: { examConfigId: ec.id, subject: sec.subject },
