@@ -144,4 +144,20 @@ const toggleInstituteStatus = async (req, res) => {
   }
 };
 
-module.exports = { getAllInstitutes, createInstitute, toggleInstituteStatus };
+const deleteInstitute = async (req, res) => {
+  try {
+    const institute = await Institute.findByPk(req.params.id);
+    if (!institute) return res.status(404).json({ success: false, message: 'Institute not found' });
+
+    if (institute.code === 'DEFAULT') {
+       return res.status(400).json({ success: false, message: 'Cannot delete the default institute' });
+    }
+
+    await institute.destroy();
+    return res.json({ success: true, message: 'Institute and all associated data deleted successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { getAllInstitutes, createInstitute, toggleInstituteStatus, deleteInstitute };

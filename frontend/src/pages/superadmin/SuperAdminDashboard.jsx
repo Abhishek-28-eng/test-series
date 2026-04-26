@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
-import { Building2, Plus, Power, KeyRound, CheckCircle, XCircle } from 'lucide-react';
+import { Building2, Plus, Power, KeyRound, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 
 export const SuperAdminDashboard = () => {
   const [institutes, setInstitutes] = useState([]);
@@ -53,6 +53,19 @@ export const SuperAdminDashboard = () => {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to toggle status');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('WARNING: Are you sure you want to PERMANENTLY DELETE this institute? This will erase all its admins, students, tests, questions, and attempts! This cannot be undone.')) return;
+    try {
+      const { data } = await api.delete(`/superadmin/institutes/${id}`);
+      if (data.success) {
+        toast.success(data.message);
+        fetchInstitutes();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete institute');
     }
   };
 
@@ -117,11 +130,18 @@ export const SuperAdminDashboard = () => {
                     <td><span className="text-muted text-sm">{new Date(inst.createdAt).toLocaleDateString()}</span></td>
                     <td>
                       {inst.code !== 'DEFAULT' && (
-                        <button title={inst.isActive ? "Disable Institute" : "Enable Institute"} 
-                          className={`btn btn-sm btn-ghost ${inst.isActive ? 'text-danger' : 'text-success'}`} 
-                          onClick={() => handleToggleStatus(inst.id, inst.isActive)}>
-                          <Power size={14}/> {inst.isActive ? 'Suspend' : 'Activate'}
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button title={inst.isActive ? "Disable Institute" : "Enable Institute"} 
+                            className={`btn btn-sm btn-ghost ${inst.isActive ? 'text-warning' : 'text-success'}`} 
+                            onClick={() => handleToggleStatus(inst.id, inst.isActive)}>
+                            <Power size={14}/> {inst.isActive ? 'Suspend' : 'Activate'}
+                          </button>
+                          <button title="Delete Institute"
+                            className="btn btn-sm btn-ghost text-danger"
+                            onClick={() => handleDelete(inst.id)}>
+                            <Trash2 size={14}/> Delete
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
