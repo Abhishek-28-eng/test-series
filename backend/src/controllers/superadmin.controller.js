@@ -124,7 +124,8 @@ const createInstitute = async (req, res) => {
       data: { institute, admin: { name: admin.name, mobile: admin.mobile } }
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    const errorMsg = error.errors ? error.errors.map(e => e.message).join(', ') : error.message;
+    return res.status(500).json({ success: false, message: errorMsg, stack: error.stack });
   }
 };
 
